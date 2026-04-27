@@ -1,0 +1,2456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Warehouse Operations Benchmarking &amp; Compliance Tool</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --bg: #FAF6EF;
+    --bg-card: #FFFDF8;
+    --paper: #F2EBDD;
+    --ink: #1A1F2E;
+    --ink-soft: #4B5160;
+    --muted: #87877A;
+    --line: #E0D6C2;
+    --line-soft: #ECE4D2;
+    --rust: #B5421A;
+    --rust-deep: #8C2F12;
+    --forest: #1F5C3F;
+    --forest-soft: #2E7D5A;
+    --amber: #C68B19;
+    --crimson: #A91D34;
+    --slate: #2A3142;
+    --shadow-soft: 0 1px 0 rgba(26,31,46,0.04), 0 4px 14px rgba(26,31,46,0.06);
+    --shadow-deep: 0 2px 0 rgba(26,31,46,0.05), 0 18px 38px -12px rgba(26,31,46,0.18);
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Manrope', system-ui, sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    font-size:15px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(181,66,26,0.04) 0%, transparent 40%),
+      radial-gradient(circle at 88% 92%, rgba(31,92,63,0.04) 0%, transparent 40%);
+    min-height:100vh;
+  }
+
+  /* Decorative grain */
+  body::before{
+    content:'';
+    position:fixed; inset:0; pointer-events:none;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(26,31,46,0.012) 0px, rgba(26,31,46,0.012) 1px, transparent 1px, transparent 3px);
+    z-index:0;
+  }
+
+  .container{max-width:1180px; margin:0 auto; padding:32px 28px 80px; position:relative; z-index:1;}
+
+  /* ===== HEADER ===== */
+  .masthead{
+    border-top:6px solid var(--ink);
+    border-bottom:1px solid var(--line);
+    padding:22px 0 26px;
+    margin-bottom:32px;
+    display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:18px;
+  }
+  .masthead-left .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase;
+    color:var(--rust); font-weight:600; margin-bottom:10px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .eyebrow::before{content:''; width:24px; height:1px; background:var(--rust);}
+  .masthead h1{
+    font-family:'Fraunces', serif;
+    font-weight:600; font-size:clamp(30px, 4vw, 48px);
+    line-height:1.02; letter-spacing:-0.02em;
+    font-variation-settings:"opsz" 144;
+  }
+  .masthead h1 em{font-style:italic; font-weight:500; color:var(--rust);}
+  .masthead-meta{
+    text-align:right; font-family:'JetBrains Mono', monospace;
+    font-size:11px; color:var(--ink-soft); line-height:1.7;
+  }
+  .masthead-meta .label{color:var(--muted); text-transform:uppercase; letter-spacing:0.1em;}
+
+  .lede{
+    font-family:'Fraunces', serif;
+    font-size:17px; line-height:1.55;
+    color:var(--ink-soft); max-width:780px;
+    margin-bottom:36px; font-weight:400;
+    font-variation-settings:"opsz" 14;
+  }
+  .lede strong{color:var(--ink); font-weight:600;}
+
+  /* ===== STEPPER ===== */
+  .stepper{
+    display:flex; gap:0; margin-bottom:36px;
+    background:var(--bg-card); border:1px solid var(--line);
+    border-radius:2px; overflow:hidden;
+  }
+  .step{
+    flex:1; padding:18px 16px; cursor:pointer;
+    border-right:1px solid var(--line);
+    display:flex; align-items:center; gap:12px;
+    transition:background 0.2s ease;
+    user-select:none;
+  }
+  .step:last-child{border-right:none;}
+  .step:hover{background:var(--paper);}
+  .step.active{background:var(--ink); color:var(--bg);}
+  .step.active .step-num{background:var(--rust); color:var(--bg);}
+  .step.active .step-meta{color:rgba(255,253,248,0.65);}
+  .step.completed .step-num{background:var(--forest); color:var(--bg);}
+  .step-num{
+    width:32px; height:32px; border-radius:50%;
+    background:var(--paper); color:var(--ink);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'JetBrains Mono', monospace; font-size:13px; font-weight:600;
+    flex-shrink:0; border:1px solid var(--line);
+  }
+  .step.active .step-num{border-color:var(--rust);}
+  .step-content{min-width:0;}
+  .step-title{font-size:13px; font-weight:600; letter-spacing:-0.005em;}
+  .step-meta{font-size:10.5px; color:var(--muted); font-family:'JetBrains Mono', monospace; text-transform:uppercase; letter-spacing:0.08em; margin-top:2px;}
+
+  /* ===== STAGE PANELS ===== */
+  .stage{display:none; animation:fadeIn 0.35s ease;}
+  .stage.active{display:block;}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+
+  .stage-header{
+    margin-bottom:28px; padding-bottom:18px;
+    border-bottom:1px solid var(--line);
+    display:flex; align-items:flex-end; justify-content:space-between; flex-wrap:wrap; gap:16px;
+  }
+  .stage-header h2{
+    font-family:'Fraunces', serif; font-weight:600;
+    font-size:32px; letter-spacing:-0.015em;
+    font-variation-settings:"opsz" 100;
+  }
+  .stage-header .badge-step{
+    font-family:'JetBrains Mono', monospace; font-size:11px;
+    color:var(--rust); letter-spacing:0.12em; text-transform:uppercase;
+    background:rgba(181,66,26,0.08); padding:5px 11px; border:1px solid rgba(181,66,26,0.2);
+  }
+  .stage-intro{
+    color:var(--ink-soft); max-width:780px; margin-bottom:30px;
+    font-size:14.5px;
+  }
+
+  /* ===== STAGE 1: SETUP FORM ===== */
+  .form-card{
+    background:var(--bg-card); border:1px solid var(--line);
+    padding:36px; border-radius:2px;
+    box-shadow:var(--shadow-soft);
+  }
+  .form-grid{display:grid; grid-template-columns:repeat(2, 1fr); gap:22px 28px;}
+  .form-group{display:flex; flex-direction:column; gap:6px;}
+  .form-group.full{grid-column:1 / -1;}
+  label{
+    font-family:'JetBrains Mono', monospace; font-size:10.5px;
+    text-transform:uppercase; letter-spacing:0.12em;
+    color:var(--ink-soft); font-weight:500;
+    display:flex; justify-content:space-between; align-items:baseline;
+  }
+  label .req{color:var(--rust);}
+  input[type=text], input[type=date], input[type=number], select, textarea{
+    width:100%;
+    background:var(--bg);
+    border:none; border-bottom:1.5px solid var(--ink);
+    padding:9px 0 8px; font-family:'Manrope', sans-serif;
+    font-size:15.5px; color:var(--ink);
+    transition:border-color 0.2s, padding 0.2s;
+  }
+  input:focus, select:focus, textarea:focus{
+    outline:none; border-bottom-color:var(--rust);
+  }
+  select{cursor:pointer; background-image:none; appearance:none; padding-right:24px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%231A1F2E' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>");
+    background-repeat:no-repeat; background-position:right 4px center;
+  }
+
+  .form-card-footer{
+    margin-top:32px; padding-top:24px; border-top:1px dashed var(--line);
+    display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;
+  }
+  .helper-text{font-size:12.5px; color:var(--muted); font-family:'JetBrains Mono', monospace;}
+
+  /* ===== BUTTONS ===== */
+  .btn{
+    display:inline-flex; align-items:center; gap:10px;
+    padding:13px 22px; border:none; cursor:pointer;
+    font-family:'Manrope', sans-serif; font-weight:600; font-size:13.5px;
+    letter-spacing:0.005em; transition:all 0.2s ease;
+    border-radius:2px; text-decoration:none; line-height:1;
+  }
+  .btn-primary{background:var(--ink); color:var(--bg);}
+  .btn-primary:hover{background:var(--rust); transform:translateY(-1px);}
+  .btn-secondary{background:transparent; color:var(--ink); border:1.5px solid var(--ink);}
+  .btn-secondary:hover{background:var(--ink); color:var(--bg);}
+  .btn-rust{background:var(--rust); color:var(--bg);}
+  .btn-rust:hover{background:var(--rust-deep);}
+  .btn-ghost{background:transparent; color:var(--ink-soft); padding:10px 14px;}
+  .btn-ghost:hover{color:var(--rust);}
+  .btn .arrow{font-family:'JetBrains Mono', monospace;}
+
+  /* ===== STAGE 2: ASSESSMENT ===== */
+  .assessment-layout{
+    display:grid; grid-template-columns:280px 1fr; gap:32px;
+    align-items:start;
+  }
+  .toc{
+    position:sticky; top:20px;
+    background:var(--bg-card); border:1px solid var(--line);
+    padding:20px 18px; max-height:calc(100vh - 40px); overflow-y:auto;
+  }
+  .toc-title{
+    font-family:'JetBrains Mono', monospace; font-size:10px;
+    text-transform:uppercase; letter-spacing:0.15em;
+    color:var(--muted); margin-bottom:14px; font-weight:600;
+  }
+  .toc-section{margin-bottom:18px;}
+  .toc-section-title{
+    font-family:'Fraunces', serif; font-size:14px;
+    font-weight:600; color:var(--ink); margin-bottom:8px;
+    padding-bottom:6px; border-bottom:1px solid var(--line-soft);
+    letter-spacing:-0.01em;
+  }
+  .toc-item{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:6px 8px; font-size:12.5px; cursor:pointer;
+    border-left:2px solid transparent;
+    color:var(--ink-soft); transition:all 0.15s;
+  }
+  .toc-item:hover{color:var(--rust); border-left-color:var(--rust);}
+  .toc-item.active{color:var(--rust); border-left-color:var(--rust); background:rgba(181,66,26,0.04);}
+  .toc-item .progress-dot{
+    width:8px; height:8px; border-radius:50%;
+    background:var(--paper); border:1.5px solid var(--line);
+    flex-shrink:0;
+  }
+  .toc-item.partial .progress-dot{background:var(--amber); border-color:var(--amber);}
+  .toc-item.complete .progress-dot{background:var(--forest); border-color:var(--forest);}
+
+  .progress-bar{
+    height:4px; background:var(--line-soft); margin-top:12px; overflow:hidden;
+  }
+  .progress-fill{height:100%; background:var(--rust); transition:width 0.3s ease;}
+  .progress-text{
+    font-family:'JetBrains Mono', monospace; font-size:10px;
+    color:var(--muted); margin-top:6px; text-align:right;
+    letter-spacing:0.05em;
+  }
+
+  /* Question cards */
+  .section-block{margin-bottom:48px;}
+  .section-banner{
+    display:flex; align-items:flex-end; gap:18px; margin-bottom:8px;
+    padding-bottom:14px; border-bottom:2px solid var(--ink);
+  }
+  .section-banner .num{
+    font-family:'Fraunces', serif; font-size:64px; line-height:0.8;
+    font-weight:300; color:var(--rust); font-style:italic;
+    font-variation-settings:"opsz" 144;
+  }
+  .section-banner-text h3{
+    font-family:'Fraunces', serif; font-size:30px; letter-spacing:-0.015em;
+    font-weight:600; line-height:1.1; margin-bottom:4px;
+  }
+  .section-banner-text .sub{
+    font-size:13px; color:var(--ink-soft); font-style:italic;
+    font-family:'Fraunces', serif;
+  }
+
+  .subsection{
+    background:var(--bg-card); border:1px solid var(--line);
+    padding:28px 32px; margin-top:20px;
+    border-left:3px solid var(--rust);
+    box-shadow:var(--shadow-soft);
+    scroll-margin-top:20px;
+  }
+  .subsection-header{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    margin-bottom:6px; gap:16px;
+  }
+  .subsection h4{
+    font-family:'Fraunces', serif; font-size:21px;
+    font-weight:600; letter-spacing:-0.01em; line-height:1.2;
+  }
+  .subsection-meta{
+    font-family:'JetBrains Mono', monospace; font-size:10.5px;
+    color:var(--muted); text-transform:uppercase; letter-spacing:0.1em;
+    text-align:right; line-height:1.5; flex-shrink:0;
+  }
+  .subsection-purpose{
+    font-size:13px; color:var(--ink-soft); font-style:italic;
+    font-family:'Fraunces', serif; margin-bottom:22px;
+    padding-bottom:14px; border-bottom:1px dashed var(--line);
+  }
+  .question{padding:18px 0; border-bottom:1px dashed var(--line-soft);}
+  .question:last-child{border-bottom:none; padding-bottom:0;}
+  .question-text{
+    font-size:14.5px; line-height:1.5; margin-bottom:12px;
+    color:var(--ink);
+    display:flex; gap:10px;
+  }
+  .question-text .qnum{
+    font-family:'JetBrains Mono', monospace; font-size:11px;
+    color:var(--rust); font-weight:600; flex-shrink:0;
+    padding-top:2px;
+  }
+  .options{
+    display:grid; grid-template-columns:repeat(5, 1fr);
+    gap:6px; margin-top:6px;
+  }
+  .option{
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    padding:9px 6px; cursor:pointer;
+    border:1px solid var(--line); background:var(--bg);
+    transition:all 0.15s ease; text-align:center;
+    font-size:11px; line-height:1.25;
+    border-radius:2px;
+    user-select:none;
+  }
+  .option:hover{border-color:var(--ink); background:var(--paper);}
+  .option input{display:none;}
+  .option .opt-score{
+    font-family:'JetBrains Mono', monospace; font-weight:600;
+    font-size:12px; color:var(--ink-soft);
+  }
+  .option .opt-label{font-size:10.5px; color:var(--ink-soft); font-weight:500;}
+  .option.selected{
+    border-color:var(--rust); background:var(--rust); color:var(--bg);
+    box-shadow:inset 0 -2px 0 var(--rust-deep);
+  }
+  .option.selected .opt-score, .option.selected .opt-label{color:var(--bg);}
+  .option[data-score="3"].selected{background:var(--forest); border-color:var(--forest); box-shadow:inset 0 -2px 0 #134227;}
+  .option[data-score="2"].selected{background:var(--forest-soft); border-color:var(--forest-soft); box-shadow:inset 0 -2px 0 var(--forest);}
+  .option[data-score="1"].selected{background:var(--amber); border-color:var(--amber); box-shadow:inset 0 -2px 0 #8C620F;}
+  .option[data-score="0"].selected{background:var(--crimson); border-color:var(--crimson); box-shadow:inset 0 -2px 0 #6E0E20;}
+  .option[data-score="na"].selected{background:var(--slate); border-color:var(--slate); box-shadow:inset 0 -2px 0 #161B27;}
+
+  /* ===== STAGE 3: KPIs ===== */
+  .kpi-grid{
+    display:grid; grid-template-columns:repeat(2, 1fr); gap:18px 28px;
+  }
+  .kpi-card{
+    background:var(--bg-card); border:1px solid var(--line);
+    padding:22px 24px; border-left:3px solid var(--forest);
+    border-radius:2px;
+  }
+  .kpi-label{
+    font-family:'Fraunces', serif; font-size:16px; font-weight:600;
+    line-height:1.2; margin-bottom:4px; letter-spacing:-0.01em;
+  }
+  .kpi-source{
+    font-family:'JetBrains Mono', monospace; font-size:10px;
+    color:var(--muted); text-transform:uppercase; letter-spacing:0.1em;
+    margin-bottom:14px;
+  }
+  .kpi-input-row{
+    display:flex; align-items:center; gap:12px;
+  }
+  .kpi-input-row input{flex:1; font-size:18px; font-weight:600; padding:6px 0 6px;}
+  .kpi-input-row .unit{
+    font-family:'JetBrains Mono', monospace; font-size:13px;
+    color:var(--ink-soft); font-weight:500; flex-shrink:0;
+  }
+  .kpi-target{
+    margin-top:10px; padding-top:10px; border-top:1px dashed var(--line);
+    font-size:12px; color:var(--ink-soft);
+    display:flex; justify-content:space-between; align-items:baseline;
+  }
+  .kpi-target .target-value{
+    font-family:'JetBrains Mono', monospace; font-weight:600;
+    color:var(--forest);
+  }
+
+  /* ===== STAGE 4: REPORT ===== */
+  .report{
+    background:var(--bg-card); border:1px solid var(--line);
+    padding:48px 52px; box-shadow:var(--shadow-deep);
+    position:relative;
+  }
+  .report::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:6px;
+    background:linear-gradient(90deg, var(--rust) 0%, var(--rust) 33%, var(--amber) 33%, var(--amber) 66%, var(--forest) 66%, var(--forest) 100%);
+  }
+  .report-masthead{
+    border-bottom:2px solid var(--ink); padding-bottom:20px; margin-bottom:36px;
+    display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:18px;
+  }
+  .report-masthead .left .doc-tag{
+    font-family:'JetBrains Mono', monospace; font-size:10.5px;
+    color:var(--rust); letter-spacing:0.18em; text-transform:uppercase;
+    margin-bottom:8px;
+  }
+  .report-masthead h2{
+    font-family:'Fraunces', serif; font-weight:600;
+    font-size:36px; letter-spacing:-0.015em; line-height:1.05;
+  }
+  .report-masthead .right{
+    text-align:right; font-family:'JetBrains Mono', monospace;
+    font-size:11px; color:var(--ink-soft); line-height:1.7;
+  }
+  .report-masthead .right .label{color:var(--muted); text-transform:uppercase; letter-spacing:0.08em;}
+
+  .report-summary{
+    display:grid; grid-template-columns:1.4fr 1fr; gap:0;
+    margin-bottom:40px; border:1px solid var(--ink);
+  }
+  .score-hero{
+    padding:36px 36px 32px;
+    background:linear-gradient(135deg, var(--ink) 0%, var(--slate) 100%);
+    color:var(--bg);
+    position:relative; overflow:hidden;
+  }
+  .score-hero::after{
+    content:''; position:absolute; right:-40px; bottom:-40px;
+    width:200px; height:200px; border-radius:50%;
+    background:rgba(181,66,26,0.12);
+  }
+  .score-hero .label{
+    font-family:'JetBrains Mono', monospace; font-size:10.5px;
+    text-transform:uppercase; letter-spacing:0.15em;
+    color:rgba(255,253,248,0.6); margin-bottom:8px;
+  }
+  .score-hero .score-value{
+    font-family:'Fraunces', serif; font-weight:600;
+    font-size:96px; line-height:0.95; letter-spacing:-0.04em;
+    font-variation-settings:"opsz" 144;
+  }
+  .score-hero .score-value sup{font-size:32px; opacity:0.7; font-weight:400;}
+  .score-hero .tier{
+    display:inline-block; margin-top:14px;
+    padding:6px 14px; border:1.5px solid currentColor;
+    font-family:'JetBrains Mono', monospace; font-size:11px;
+    text-transform:uppercase; letter-spacing:0.12em; font-weight:600;
+    background:rgba(255,253,248,0.06);
+  }
+  .score-hero .tier-desc{
+    font-family:'Fraunces', serif; font-style:italic; font-size:14px;
+    margin-top:14px; color:rgba(255,253,248,0.85); max-width:340px; line-height:1.45;
+  }
+  .summary-stats{
+    padding:32px; display:grid; grid-template-rows:repeat(3, 1fr);
+    gap:18px;
+  }
+  .stat{
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding-bottom:14px; border-bottom:1px dashed var(--line);
+  }
+  .stat:last-child{border-bottom:none; padding-bottom:0;}
+  .stat .label{font-size:12.5px; color:var(--ink-soft);}
+  .stat .value{
+    font-family:'Fraunces', serif; font-size:22px; font-weight:600;
+    letter-spacing:-0.01em;
+  }
+  .stat .value.pos{color:var(--forest);}
+  .stat .value.neg{color:var(--crimson);}
+
+  .report-h3{
+    font-family:'Fraunces', serif; font-size:24px; font-weight:600;
+    letter-spacing:-0.01em; margin:40px 0 18px; padding-bottom:8px;
+    border-bottom:1px solid var(--line); position:relative;
+  }
+  .report-h3::before{
+    content:''; position:absolute; bottom:-1.5px; left:0; width:54px; height:3px;
+    background:var(--rust);
+  }
+  .report-h3 .label-mono{
+    font-family:'JetBrains Mono', monospace; font-size:10px;
+    color:var(--muted); letter-spacing:0.15em; text-transform:uppercase;
+    font-weight:400; margin-left:12px; vertical-align:middle;
+  }
+
+  /* Section bars */
+  .section-scores{display:flex; flex-direction:column; gap:14px;}
+  .score-bar-row{
+    display:grid; grid-template-columns:200px 1fr 60px;
+    align-items:center; gap:18px;
+  }
+  .score-bar-row .name{
+    font-family:'Fraunces', serif; font-size:15px; font-weight:600;
+    line-height:1.25;
+  }
+  .score-bar-row .name small{
+    display:block; font-family:'JetBrains Mono', monospace; font-size:10px;
+    color:var(--muted); font-weight:400; text-transform:uppercase;
+    letter-spacing:0.08em; margin-top:1px;
+  }
+  .score-bar-track{
+    height:18px; background:var(--paper); border:1px solid var(--line);
+    position:relative; overflow:hidden;
+  }
+  .score-bar-fill{
+    height:100%; transition:width 0.6s ease;
+    display:flex; align-items:center; justify-content:flex-end;
+    padding-right:6px; color:var(--bg);
+    font-family:'JetBrains Mono', monospace; font-size:10px; font-weight:600;
+  }
+  .score-bar-fill.high{background:var(--forest);}
+  .score-bar-fill.mid{background:var(--amber);}
+  .score-bar-fill.low{background:var(--crimson);}
+  .score-bar-row .pct{
+    font-family:'Fraunces', serif; font-size:20px; font-weight:600;
+    text-align:right; letter-spacing:-0.01em;
+  }
+  .benchmark-marker{
+    position:absolute; top:-3px; bottom:-3px;
+    width:2px; background:var(--ink);
+    z-index:2;
+  }
+  .benchmark-marker::after{
+    content:''; position:absolute; top:-4px; left:-4px;
+    width:10px; height:10px; background:var(--ink);
+    transform:rotate(45deg);
+  }
+
+  /* Heatmap */
+  .heatmap{
+    display:grid; grid-template-columns:repeat(5, 1fr); gap:2px;
+    margin-top:8px;
+  }
+  .heat-cell{
+    background:var(--bg-card); border:1px solid var(--line);
+    padding:14px 12px; min-height:84px;
+    display:flex; flex-direction:column; justify-content:space-between;
+    position:relative; transition:transform 0.15s;
+  }
+  .heat-cell:hover{transform:translateY(-2px); box-shadow:var(--shadow-soft); z-index:2;}
+  .heat-cell .name{
+    font-family:'Fraunces', serif; font-size:12.5px; font-weight:600;
+    line-height:1.2; letter-spacing:-0.005em;
+  }
+  .heat-cell .pct{
+    font-family:'JetBrains Mono', monospace; font-size:14px; font-weight:600;
+    margin-top:4px;
+  }
+  .heat-cell.high{background:rgba(31,92,63,0.12); border-color:var(--forest);}
+  .heat-cell.high .pct{color:var(--forest);}
+  .heat-cell.mid{background:rgba(198,139,25,0.12); border-color:var(--amber);}
+  .heat-cell.mid .pct{color:#8C620F;}
+  .heat-cell.low{background:rgba(169,29,52,0.10); border-color:var(--crimson);}
+  .heat-cell.low .pct{color:var(--crimson);}
+  .heat-cell.na{background:var(--paper); border-color:var(--line);}
+  .heat-cell.na .pct{color:var(--muted);}
+
+  /* Insights two-column */
+  .insights{
+    display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:8px;
+  }
+  .insight-col{
+    background:var(--paper); padding:24px 26px; border:1px solid var(--line);
+    border-radius:2px;
+  }
+  .insight-col.strengths{border-left:3px solid var(--forest);}
+  .insight-col.gaps{border-left:3px solid var(--crimson);}
+  .insight-col h4{
+    font-family:'Fraunces', serif; font-size:18px; font-weight:600;
+    letter-spacing:-0.01em; margin-bottom:14px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .insight-col.strengths h4{color:var(--forest);}
+  .insight-col.gaps h4{color:var(--crimson);}
+  .insight-list{list-style:none; display:flex; flex-direction:column; gap:11px;}
+  .insight-list li{
+    display:flex; gap:10px; font-size:13px; line-height:1.45;
+    padding-left:0;
+  }
+  .insight-list li .marker{
+    flex-shrink:0; font-family:'JetBrains Mono', monospace;
+    font-size:11px; font-weight:600; padding-top:1px;
+  }
+  .insight-col.strengths .marker{color:var(--forest);}
+  .insight-col.gaps .marker{color:var(--crimson);}
+
+  /* KPI table */
+  .kpi-table{width:100%; border-collapse:collapse; margin-top:8px;}
+  .kpi-table th{
+    text-align:left; padding:10px 12px;
+    font-family:'JetBrains Mono', monospace; font-size:10.5px;
+    text-transform:uppercase; letter-spacing:0.1em;
+    color:var(--ink-soft); font-weight:600;
+    border-bottom:2px solid var(--ink);
+  }
+  .kpi-table td{
+    padding:13px 12px; border-bottom:1px solid var(--line);
+    font-size:13.5px; vertical-align:middle;
+  }
+  .kpi-table td.metric-name{
+    font-family:'Fraunces', serif; font-weight:600; font-size:14.5px;
+  }
+  .kpi-table td.value{
+    font-family:'JetBrains Mono', monospace; font-weight:600; font-size:14px;
+  }
+  .kpi-table tr.no-data td{color:var(--muted); font-style:italic;}
+  .kpi-status{
+    display:inline-block; padding:3px 9px; font-size:10px;
+    font-family:'JetBrains Mono', monospace; font-weight:600;
+    text-transform:uppercase; letter-spacing:0.1em;
+    border:1px solid currentColor;
+  }
+  .kpi-status.meets{color:var(--forest); background:rgba(31,92,63,0.08);}
+  .kpi-status.miss{color:var(--crimson); background:rgba(169,29,52,0.08);}
+  .kpi-status.partial{color:var(--amber); background:rgba(198,139,25,0.10);}
+
+  /* Recommendations */
+  .recs-list{
+    display:flex; flex-direction:column; gap:14px; margin-top:8px;
+  }
+  .rec-item{
+    display:grid; grid-template-columns:50px 1fr; gap:18px; align-items:start;
+    padding:16px 20px; background:var(--bg-card); border:1px solid var(--line);
+    border-left:3px solid var(--rust);
+  }
+  .rec-num{
+    font-family:'Fraunces', serif; font-style:italic; font-weight:500;
+    font-size:32px; color:var(--rust); line-height:1; padding-top:2px;
+    font-variation-settings:"opsz" 144;
+  }
+  .rec-content h5{
+    font-family:'Fraunces', serif; font-size:15.5px; font-weight:600;
+    margin-bottom:4px; letter-spacing:-0.005em;
+  }
+  .rec-content p{font-size:13px; color:var(--ink-soft); line-height:1.5;}
+  .rec-meta{
+    font-family:'JetBrains Mono', monospace; font-size:10px;
+    color:var(--muted); text-transform:uppercase; letter-spacing:0.1em;
+    margin-top:6px;
+  }
+
+  /* Tier guide */
+  .tier-legend{
+    display:grid; grid-template-columns:repeat(5, 1fr); gap:6px;
+    margin-top:8px;
+  }
+  .tier-item{
+    padding:14px 14px; background:var(--bg-card);
+    border:1px solid var(--line); border-top:3px solid;
+  }
+  .tier-item.t1{border-top-color:var(--forest);}
+  .tier-item.t2{border-top-color:var(--forest-soft);}
+  .tier-item.t3{border-top-color:var(--amber);}
+  .tier-item.t4{border-top-color:#D97706;}
+  .tier-item.t5{border-top-color:var(--crimson);}
+  .tier-item .range{
+    font-family:'JetBrains Mono', monospace; font-size:11px;
+    color:var(--ink-soft); font-weight:600; margin-bottom:2px;
+  }
+  .tier-item .name{
+    font-family:'Fraunces', serif; font-size:14.5px; font-weight:600;
+    letter-spacing:-0.005em;
+  }
+  .tier-item.current{background:var(--ink); color:var(--bg);}
+  .tier-item.current .range{color:rgba(255,253,248,0.6);}
+
+  /* ===== ACTIONS ===== */
+  .actions-bar{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:36px; padding-top:24px; border-top:1px solid var(--line);
+    flex-wrap:wrap; gap:14px;
+  }
+
+  /* ===== FOOTER ===== */
+  .footer{
+    margin-top:64px; padding-top:24px; border-top:1px solid var(--line);
+    font-family:'JetBrains Mono', monospace; font-size:10.5px;
+    color:var(--muted); display:flex; justify-content:space-between;
+    flex-wrap:wrap; gap:14px; letter-spacing:0.05em;
+  }
+  .footer a{color:var(--ink-soft); text-decoration:none; border-bottom:1px solid var(--line);}
+  .footer a:hover{color:var(--rust); border-bottom-color:var(--rust);}
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 880px){
+    .container{padding:24px 18px 60px;}
+    .form-grid, .kpi-grid{grid-template-columns:1fr;}
+    .assessment-layout{grid-template-columns:1fr;}
+    .toc{position:static; max-height:none;}
+    .stepper{flex-wrap:wrap;}
+    .step{flex:1 1 50%; border-bottom:1px solid var(--line);}
+    .options{grid-template-columns:repeat(3, 1fr);}
+    .report-summary{grid-template-columns:1fr;}
+    .score-bar-row{grid-template-columns:1fr; gap:8px;}
+    .score-bar-row .pct{text-align:left;}
+    .heatmap{grid-template-columns:repeat(2, 1fr);}
+    .insights{grid-template-columns:1fr;}
+    .tier-legend{grid-template-columns:repeat(2, 1fr);}
+    .report{padding:32px 22px;}
+    .form-card{padding:24px;}
+    .view-tabs{overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch;}
+    .view-tab{flex-shrink:0; padding:12px 16px; font-size:12.5px;}
+    .method-section{padding:24px 22px;}
+    .method-section h3{font-size:20px;}
+    .scale-table th, .scale-table td{padding:9px 10px; font-size:12.5px;}
+    .scale-table td.scale-name{width:auto;}
+    .disclaimer-box{padding:24px 22px;}
+    .gate-card{padding:28px 24px;}
+    .gate-card h2{font-size:24px;}
+  }
+
+  /* ===== PRINT ===== */
+  @media print{
+    body{background:white; padding:0; font-size:11pt;}
+    body::before{display:none;}
+    .container{max-width:100%; padding:0;}
+    .stepper, .stage-header .badge-step, .actions-bar, .footer, #stage-1, #stage-2, #stage-3, .masthead, .gate-overlay, .view-tabs, #view-methodology, .lede{display:none !important;}
+    .stage{display:block !important;}
+    .view{display:block !important;}
+    #stage-4{display:block;}
+    .report{box-shadow:none; border:none; padding:0;}
+    .report::before{display:none;}
+    .heat-cell:hover{transform:none;}
+    .section-block{page-break-inside:avoid;}
+    .subsection{page-break-inside:avoid;}
+    .rec-item{page-break-inside:avoid;}
+  }
+
+  /* ===== UTILITY ===== */
+  .hidden{display:none !important;}
+  .errors{
+    background:rgba(169,29,52,0.06); border:1px solid var(--crimson);
+    border-left:3px solid var(--crimson);
+    padding:14px 18px; margin-bottom:20px; color:var(--crimson);
+    font-size:13.5px;
+  }
+
+  /* ===== VIEW TABS ===== */
+  .view-tabs{
+    display:flex; gap:0; margin-bottom:32px;
+    border-bottom:1.5px solid var(--ink);
+  }
+  .view-tab{
+    background:transparent; border:none; cursor:pointer;
+    font-family:'Manrope', sans-serif; font-weight:600;
+    font-size:13.5px; letter-spacing:0.005em;
+    padding:14px 22px; color:var(--ink-soft);
+    border-bottom:3px solid transparent; margin-bottom:-1.5px;
+    transition:all 0.18s ease; display:flex; align-items:center; gap:10px;
+  }
+  .view-tab:hover{color:var(--ink);}
+  .view-tab.active{color:var(--ink); border-bottom-color:var(--rust);}
+  .view-tab .tab-num{
+    font-family:'JetBrains Mono', monospace; font-size:10.5px;
+    color:var(--rust); font-weight:600;
+  }
+
+  .view{display:none;}
+  .view.active{display:block; animation:viewIn 0.3s ease;}
+  @keyframes viewIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+  /* ===== METHODOLOGY ===== */
+  .methodology-intro{
+    border-left:3px solid var(--rust); padding:14px 22px;
+    background:var(--bg-card); margin-bottom:34px;
+    font-family:'Fraunces', serif; font-size:16.5px; line-height:1.55;
+    color:var(--ink-soft); font-style:italic;
+    font-variation-settings:"opsz" 14;
+  }
+  .method-section{
+    background:var(--bg-card); border:1px solid var(--line);
+    padding:32px 36px; margin-bottom:22px; border-radius:2px;
+    box-shadow:var(--shadow-soft);
+  }
+  .method-section h3{
+    font-family:'Fraunces', serif; font-size:24px; letter-spacing:-0.012em;
+    font-weight:600; line-height:1.15; margin-bottom:6px;
+    display:flex; align-items:baseline; gap:12px;
+  }
+  .method-section h3 .num{
+    font-family:'JetBrains Mono', monospace; font-size:12px;
+    color:var(--rust); font-weight:600; letter-spacing:0.05em;
+  }
+  .method-section .lede{
+    font-family:'Fraunces', serif; font-style:italic; font-size:14.5px;
+    color:var(--ink-soft); margin-bottom:18px; max-width:680px; line-height:1.5;
+  }
+  .method-section p{font-size:14px; line-height:1.6; color:var(--ink); margin-bottom:12px;}
+  .method-section p:last-child{margin-bottom:0;}
+  .method-section ul{padding-left:0; list-style:none; margin-bottom:12px;}
+  .method-section ul li{
+    padding:8px 0 8px 22px; position:relative;
+    font-size:13.5px; line-height:1.55; border-bottom:1px dashed var(--line-soft);
+  }
+  .method-section ul li:last-child{border-bottom:none;}
+  .method-section ul li::before{
+    content:'+'; position:absolute; left:0; top:8px;
+    font-family:'JetBrains Mono', monospace; font-size:13px;
+    color:var(--rust); font-weight:600;
+  }
+  .method-section strong{color:var(--ink); font-weight:600;}
+
+  .scale-table{width:100%; border-collapse:collapse; margin-top:6px;}
+  .scale-table th, .scale-table td{
+    text-align:left; padding:11px 14px; border-bottom:1px solid var(--line);
+    font-size:13.5px; vertical-align:top;
+  }
+  .scale-table th{
+    font-family:'JetBrains Mono', monospace; font-size:10.5px;
+    text-transform:uppercase; letter-spacing:0.1em;
+    color:var(--ink-soft); font-weight:600;
+    border-bottom:2px solid var(--ink);
+  }
+  .scale-table td:first-child{
+    font-family:'JetBrains Mono', monospace; font-weight:600;
+    width:80px; font-size:13px;
+  }
+  .scale-table td.scale-name{
+    font-family:'Fraunces', serif; font-size:14.5px; font-weight:600;
+    width:180px;
+  }
+  .scale-pill{
+    display:inline-block; padding:3px 10px; font-size:10.5px;
+    font-family:'JetBrains Mono', monospace; font-weight:600;
+    text-transform:uppercase; letter-spacing:0.08em;
+    border:1px solid currentColor;
+  }
+  .scale-pill.s3{color:var(--forest);}
+  .scale-pill.s2{color:var(--forest-soft);}
+  .scale-pill.s1{color:var(--amber);}
+  .scale-pill.s0{color:var(--crimson);}
+  .scale-pill.sna{color:var(--slate);}
+
+  .disclaimer-box{
+    background:linear-gradient(135deg, var(--ink) 0%, var(--slate) 100%);
+    color:var(--bg);
+    padding:30px 34px; border:none; margin-bottom:22px;
+    position:relative; overflow:hidden;
+  }
+  .disclaimer-box::before{
+    content:''; position:absolute; top:0; left:0; bottom:0; width:6px;
+    background:var(--rust);
+  }
+  .disclaimer-box::after{
+    content:''; position:absolute; right:-50px; bottom:-50px;
+    width:180px; height:180px; border-radius:50%;
+    background:rgba(181,66,26,0.10);
+  }
+  .disclaimer-box h3{
+    font-family:'Fraunces', serif; font-size:22px; font-weight:600;
+    letter-spacing:-0.012em; margin-bottom:10px; position:relative;
+  }
+  .disclaimer-box h3 em{font-style:italic; color:#E89B6E; font-weight:500;}
+  .disclaimer-box p{
+    font-family:'Fraunces', serif; font-size:15px; line-height:1.55;
+    color:rgba(255,253,248,0.88); position:relative; margin-bottom:10px;
+    font-variation-settings:"opsz" 14;
+  }
+  .disclaimer-box p:last-child{margin-bottom:0;}
+  .disclaimer-box a{
+    color:#FFD7BD; text-decoration:none;
+    border-bottom:1.5px solid rgba(255,215,189,0.4);
+    transition:border-color 0.2s;
+  }
+  .disclaimer-box a:hover{border-bottom-color:#FFD7BD;}
+
+  /* FreightFox attribution mark */
+  .ff-mark{
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:'JetBrains Mono', monospace; font-size:10.5px;
+    color:var(--ink-soft); letter-spacing:0.08em; text-transform:uppercase;
+  }
+  .ff-mark a{
+    color:var(--rust); text-decoration:none; font-weight:600;
+    border-bottom:1px solid transparent;
+  }
+  .ff-mark a:hover{border-bottom-color:var(--rust);}
+
+  .gate-disclaimer{
+    margin-top:14px; padding-top:14px; border-top:1px dashed var(--line);
+    font-size:11px; color:var(--muted); line-height:1.55;
+    text-align:center;
+  }
+  .gate-disclaimer a{
+    color:var(--rust); text-decoration:none; font-weight:600;
+    border-bottom:1px solid transparent;
+  }
+  .gate-disclaimer a:hover{border-bottom-color:var(--rust);}
+
+  /* ===== ACCESS GATE ===== */
+  .gate-overlay{
+    position:fixed; inset:0; z-index:9999;
+    background:rgba(20,24,36,0.78);
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+    display:flex; align-items:center; justify-content:center;
+    padding:24px; overflow-y:auto;
+    animation:gateIn 0.35s ease;
+  }
+  @keyframes gateIn{from{opacity:0;} to{opacity:1;}}
+  .gate-overlay.hidden{display:none;}
+  body.gate-locked{overflow:hidden;}
+  body.gate-locked .container{filter:blur(4px); pointer-events:none; user-select:none;}
+
+  .gate-card{
+    background:var(--bg-card); width:100%; max-width:480px;
+    border:1px solid var(--line); border-top:6px solid var(--ink);
+    padding:36px 38px 32px; box-shadow:0 30px 80px -20px rgba(0,0,0,0.5);
+    position:relative; animation:gateCardIn 0.45s cubic-bezier(0.2,0.8,0.2,1);
+  }
+  @keyframes gateCardIn{
+    from{opacity:0; transform:translateY(20px) scale(0.97);}
+    to{opacity:1; transform:translateY(0) scale(1);}
+  }
+  .gate-eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase;
+    color:var(--rust); font-weight:600; margin-bottom:10px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .gate-eyebrow::before{content:''; width:24px; height:1px; background:var(--rust);}
+  .gate-card h2{
+    font-family:'Fraunces', serif; font-weight:600;
+    font-size:30px; letter-spacing:-0.018em; line-height:1.05;
+    margin-bottom:8px;
+  }
+  .gate-card h2 em{font-style:italic; color:var(--rust); font-weight:500;}
+  .gate-card .gate-lede{
+    font-family:'Fraunces', serif; font-size:14.5px; color:var(--ink-soft);
+    line-height:1.5; margin-bottom:24px; font-style:italic;
+  }
+  .gate-form{display:flex; flex-direction:column; gap:18px;}
+  .gate-form .form-group label{
+    font-family:'JetBrains Mono', monospace; font-size:10.5px;
+    text-transform:uppercase; letter-spacing:0.12em;
+    color:var(--ink-soft); font-weight:500; margin-bottom:6px; display:block;
+  }
+  .gate-form .form-group label .req{color:var(--rust);}
+  .gate-form input{
+    width:100%; background:var(--bg);
+    border:none; border-bottom:1.5px solid var(--ink);
+    padding:9px 0 8px; font-family:'Manrope', sans-serif;
+    font-size:15.5px; color:var(--ink);
+    transition:border-color 0.2s;
+  }
+  .gate-form input:focus{outline:none; border-bottom-color:var(--rust);}
+  .gate-form input.error{border-bottom-color:var(--crimson);}
+  .gate-error-msg{
+    color:var(--crimson); font-size:12.5px; margin-top:4px;
+    font-family:'JetBrains Mono', monospace; letter-spacing:0.02em;
+    min-height:0; opacity:0; transition:opacity 0.2s;
+  }
+  .gate-error-msg.show{opacity:1; min-height:16px;}
+  .gate-actions{
+    margin-top:28px; padding-top:18px; border-top:1px dashed var(--line);
+    display:flex; flex-direction:column; gap:14px; align-items:stretch;
+  }
+  .gate-actions .btn{justify-content:center; padding:14px 22px; font-size:14px;}
+  .gate-privacy{
+    font-size:11.5px; color:var(--muted); line-height:1.5;
+    text-align:center; font-family:'Manrope', sans-serif;
+  }
+  .gate-privacy strong{color:var(--ink-soft);}
+</style>
+</head>
+<body class="gate-locked">
+
+<!-- ===== ACCESS GATE ===== -->
+<div class="gate-overlay" id="gateOverlay">
+  <div class="gate-card">
+    <div class="gate-eyebrow">Access Required</div>
+    <h2>Before you <em>begin</em></h2>
+    <p class="gate-lede">Please share your details to access the Warehouse Operations Benchmarking &amp; Compliance Tool. All fields are required.</p>
+
+    <form class="gate-form" id="gateForm" autocomplete="off" novalidate>
+      <div class="form-group">
+        <label>Full Name <span class="req">*</span></label>
+        <input type="text" id="gateName" placeholder="e.g. Priya Sharma" />
+        <div class="gate-error-msg" data-for="gateName"></div>
+      </div>
+      <div class="form-group">
+        <label>Email Address <span class="req">*</span></label>
+        <input type="email" id="gateEmail" placeholder="name@company.com" inputmode="email" />
+        <div class="gate-error-msg" data-for="gateEmail"></div>
+      </div>
+      <div class="form-group">
+        <label>Contact Number <span class="req">*</span></label>
+        <input type="tel" id="gatePhone" placeholder="+91 98765 43210" inputmode="tel" />
+        <div class="gate-error-msg" data-for="gatePhone"></div>
+      </div>
+
+      <div class="gate-actions">
+        <button type="submit" class="btn btn-primary" id="gateSubmit">
+          Continue to Tool <span class="arrow">→</span>
+        </button>
+        <div class="gate-privacy">
+          <strong>Privacy.</strong> Your contact details and assessment results are securely stored for benchmarking and follow-up purposes. Nothing is shared with third parties.
+        </div>
+        <div class="gate-disclaimer">
+          Open-source tool designed by <a href="https://freightfox.ai" target="_blank" rel="noopener">FreightFox.ai</a>. Consult subject-matter experts or the FreightFox team for deeper interpretation.
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ===== MASTHEAD ===== -->
+  <header class="masthead">
+    <div class="masthead-left">
+      <div class="eyebrow">SOP-Aligned Self-Assessment</div>
+      <h1>Warehouse Operations<br/><em>Benchmarking &amp; Compliance</em></h1>
+    </div>
+    <div class="masthead-meta">
+      <div><span class="label">Issue</span> &nbsp;v1.0&nbsp;/&nbsp;2026</div>
+      <div><span class="label">Framework</span> &nbsp;DTAC SOPs (2020)</div>
+      <div><span class="label">Coverage</span> &nbsp;15 Sub-Areas&nbsp;/&nbsp;106 Controls</div>
+    </div>
+  </header>
+
+  <p class="lede">
+    A self-service diagnostic for warehouse managers, auditors and supply chain leaders. Score your operation across <strong>three pillars &mdash; Inbound, Fulfilment and Maintenance &mdash;</strong> aligned to the Indo-Pacific Health &amp; Supply Chain DTAC Warehouse SOP framework. Receive an instant compliance tier, sub-area heat-map, KPI gap analysis and a structured remediation plan.
+  </p>
+
+  <!-- ===== VIEW TABS ===== -->
+  <nav class="view-tabs" id="viewTabs">
+    <button class="view-tab active" data-view="assessment">
+      <span class="tab-num">01</span> Assessment Tool
+    </button>
+    <button class="view-tab" data-view="methodology">
+      <span class="tab-num">02</span> Methodology &amp; Notes
+    </button>
+  </nav>
+
+  <!-- ===== ASSESSMENT VIEW ===== -->
+  <div class="view active" id="view-assessment">
+
+  <!-- ===== STEPPER ===== -->
+  <nav class="stepper" id="stepper">
+    <div class="step active" data-step="1">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <div class="step-title">Setup</div>
+        <div class="step-meta">Org &amp; Assessor</div>
+      </div>
+    </div>
+    <div class="step" data-step="2">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <div class="step-title">Self-Assessment</div>
+        <div class="step-meta">106 Controls</div>
+      </div>
+    </div>
+    <div class="step" data-step="3">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <div class="step-title">KPI Metrics</div>
+        <div class="step-meta">Operational Inputs</div>
+      </div>
+    </div>
+    <div class="step" data-step="4">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <div class="step-title">Report</div>
+        <div class="step-meta">Benchmarking</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ===== STAGE 1: SETUP ===== -->
+  <section class="stage active" id="stage-1">
+    <div class="stage-header">
+      <h2>Organisation &amp; Assessor</h2>
+      <span class="badge-step">Step 01 / 04</span>
+    </div>
+    <p class="stage-intro">Identify the warehouse and the person performing the assessment. The date is auto-populated and the assessment ID is generated for traceability.</p>
+
+    <form class="form-card" id="setupForm" autocomplete="off">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Organisation Name <span class="req">*</span></label>
+          <input type="text" id="orgName" required placeholder="e.g. Acme Logistics Pvt. Ltd." />
+        </div>
+        <div class="form-group">
+          <label>Sector / Industry</label>
+          <select id="orgSector">
+            <option value="">Select sector…</option>
+            <option>Pharmaceutical &amp; Healthcare</option>
+            <option>FMCG / Consumer Goods</option>
+            <option>Manufacturing &amp; Industrial</option>
+            <option>E-commerce / Retail</option>
+            <option>Cold Chain / Perishables</option>
+            <option>3PL / Contract Logistics</option>
+            <option>Chemicals &amp; Hazardous Goods</option>
+            <option>Automotive &amp; Spares</option>
+            <option>Public Health / Government</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Warehouse Name / Identifier <span class="req">*</span></label>
+          <input type="text" id="whName" required placeholder="e.g. Bhiwandi DC-01" />
+        </div>
+        <div class="form-group">
+          <label>Location (City, Country)</label>
+          <input type="text" id="whLocation" placeholder="e.g. Bhiwandi, India" />
+        </div>
+        <div class="form-group">
+          <label>Storage Footprint (sq ft)</label>
+          <input type="number" id="whSize" min="0" placeholder="e.g. 50000" />
+        </div>
+        <div class="form-group">
+          <label>SKUs Managed (approx.)</label>
+          <input type="number" id="whSkus" min="0" placeholder="e.g. 1200" />
+        </div>
+        <div class="form-group">
+          <label>Assessor Full Name <span class="req">*</span></label>
+          <input type="text" id="assessorName" required placeholder="e.g. Priya Sharma" />
+        </div>
+        <div class="form-group">
+          <label>Designation / Role</label>
+          <input type="text" id="assessorRole" placeholder="e.g. Warehouse Manager" />
+        </div>
+        <div class="form-group">
+          <label>Email Address <span class="req">*</span></label>
+          <input type="email" id="assessorEmail" required placeholder="name@company.com" />
+        </div>
+        <div class="form-group">
+          <label>Contact Number <span class="req">*</span></label>
+          <input type="tel" id="assessorPhone" required placeholder="+91 98765 43210" />
+        </div>
+        <div class="form-group">
+          <label>Assessment Date</label>
+          <input type="date" id="assessDate" />
+        </div>
+        <div class="form-group">
+          <label>Assessment ID <span class="helper-text" style="font-family:inherit; text-transform:none; letter-spacing:0; color:var(--muted);">(auto-generated)</span></label>
+          <input type="text" id="assessId" readonly />
+        </div>
+        <div class="form-group full">
+          <label>Scope Notes (optional)</label>
+          <input type="text" id="scopeNotes" placeholder="Any specific areas, exclusions or context for this review…" />
+        </div>
+      </div>
+
+      <div class="form-card-footer">
+        <span class="helper-text">All fields marked * are required to proceed.</span>
+        <button type="button" class="btn btn-primary" onclick="goToStep(2)">
+          Begin Assessment <span class="arrow">→</span>
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ===== STAGE 2: ASSESSMENT ===== -->
+  <section class="stage" id="stage-2">
+    <div class="stage-header">
+      <h2>Compliance Self-Assessment</h2>
+      <span class="badge-step">Step 02 / 04</span>
+    </div>
+    <p class="stage-intro">Score each control on a 0&ndash;3 maturity scale. Use <em>Not Applicable</em> for controls that genuinely do not apply (e.g. cold chain in an ambient-only facility). N/A items are excluded from your score.</p>
+
+    <div class="assessment-layout">
+      <aside class="toc" id="toc">
+        <div class="toc-title">Sections</div>
+        <div id="tocBody"></div>
+        <div class="progress-bar"><div class="progress-fill" id="progFill" style="width:0%;"></div></div>
+        <div class="progress-text" id="progText">0 of 82 answered</div>
+      </aside>
+
+      <div id="assessmentBody"></div>
+    </div>
+
+    <div class="actions-bar">
+      <button type="button" class="btn btn-ghost" onclick="goToStep(1)">← Back to Setup</button>
+      <button type="button" class="btn btn-primary" onclick="goToStep(3)">Continue to KPI Metrics <span class="arrow">→</span></button>
+    </div>
+  </section>
+
+  <!-- ===== STAGE 3: KPI INPUTS ===== -->
+  <section class="stage" id="stage-3">
+    <div class="stage-header">
+      <h2>Operational KPIs</h2>
+      <span class="badge-step">Step 03 / 04</span>
+    </div>
+    <p class="stage-intro">Provide your warehouse&rsquo;s actual performance metrics. These are benchmarked against SOP-recommended targets in your final report. Leave blank if not currently measured.</p>
+
+    <div class="kpi-grid" id="kpiGrid"></div>
+
+    <div class="actions-bar">
+      <button type="button" class="btn btn-ghost" onclick="goToStep(2)">← Back to Assessment</button>
+      <button type="button" class="btn btn-rust" onclick="goToStep(4)">Generate Benchmarking Report <span class="arrow">→</span></button>
+    </div>
+  </section>
+
+  <!-- ===== STAGE 4: REPORT ===== -->
+  <section class="stage" id="stage-4">
+    <div id="reportContainer"></div>
+    <div class="actions-bar">
+      <button type="button" class="btn btn-ghost" onclick="goToStep(3)">← Edit KPIs</button>
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="btn btn-secondary" onclick="downloadJSON()">⬇ Download JSON</button>
+        <button type="button" class="btn btn-primary" onclick="window.print()">🖨 Print / Save PDF</button>
+      </div>
+    </div>
+  </section>
+
+  </div><!-- /view-assessment -->
+
+  <!-- ===== METHODOLOGY VIEW ===== -->
+  <div class="view" id="view-methodology">
+
+    <p class="methodology-intro">
+      A reference guide explaining how this tool scores warehouse maturity, what each tier means, how KPIs are evaluated, and the limitations you should bear in mind when interpreting the results.
+    </p>
+
+    <!-- Disclaimer -->
+    <div class="disclaimer-box">
+      <h3>About this <em>tool</em></h3>
+      <p>
+        This Warehouse Operations Benchmarking &amp; Compliance Tool is an <strong style="color:#FFD7BD;">open-source diagnostic</strong> designed and maintained by <a href="https://freightfox.ai" target="_blank" rel="noopener">FreightFox.ai</a>. It is offered freely to warehouse operators, supply chain leaders and auditors as a structured first look at operational maturity.
+      </p>
+      <p>
+        It is <strong style="color:#FFD7BD;">not a substitute for professional audit</strong>. Self-assessment results reflect the assessor&rsquo;s view at a single point in time and may not capture every nuance of your operation. For deeper interpretation, gap remediation, implementation support or independent review, please consult internal subject-matter experts or reach out to the <a href="https://freightfox.ai" target="_blank" rel="noopener">FreightFox team</a>.
+      </p>
+    </div>
+
+    <!-- Section 1: Origin -->
+    <div class="method-section">
+      <h3><span class="num">01</span> Framework Origin</h3>
+      <p class="lede">Where the SOPs come from and who they were written for.</p>
+      <p>
+        The control framework underlying this tool is derived from the <strong>Warehouse Standard Operating Procedures (2020)</strong> published by the Indo-Pacific Health &amp; Supply Chain Data &amp; Technical Assistance Centre (DTAC), in consultation with The mSupply Foundation and Beyond Essential Systems.
+      </p>
+      <p>
+        The original SOPs were designed for National Medical Stores in Pacific Island Countries managing health commodities through the mSupply electronic Logistics Management System (eLMIS). For this tool, the framework has been <strong>generalised and re-phrased</strong> to apply to any warehouse operation &mdash; pharmaceutical, FMCG, manufacturing, e-commerce, 3PL, cold chain, or hazardous goods. SOP-specific terminology (e.g. &ldquo;mSupply&rdquo;, &ldquo;DDA Coordinator&rdquo;) has been retained where it adds clarity and replaced with generic equivalents (&ldquo;WMS&rdquo;, &ldquo;Controlled Substances Coordinator&rdquo;) elsewhere.
+      </p>
+    </div>
+
+    <!-- Section 2: Structure -->
+    <div class="method-section">
+      <h3><span class="num">02</span> Structure &amp; Coverage</h3>
+      <p class="lede">Three pillars, fifteen sub-areas, one hundred and six controls.</p>
+      <ul>
+        <li><strong>Pillar A &mdash; Inbound Operations</strong> (6 sub-areas): Preparation for Goods Receipt, Customs Clearance, Goods Arrival, Goods Inspection, Goods Receipt (System Entry), Supplier Payments.</li>
+        <li><strong>Pillar B &mdash; Order Fulfilment</strong> (3 sub-areas): Order Processing, Picking &amp; Assembling, Dispatch &amp; Distribution.</li>
+        <li><strong>Pillar C &mdash; Warehouse Maintenance</strong> (6 sub-areas): Warehouse Storage, Storage Conditions, Stocktakes, Expiring Items, Supplementary Orders, Security.</li>
+        <li>Total: <strong>106 individual controls</strong> spread across the 15 sub-areas, plus <strong>10 operational KPIs</strong> with SOP-derived targets.</li>
+      </ul>
+    </div>
+
+    <!-- Section 3: Scoring scale -->
+    <div class="method-section">
+      <h3><span class="num">03</span> Maturity Scoring Scale</h3>
+      <p class="lede">A 0&ndash;3 scale per control. N/A items are excluded from the denominator.</p>
+      <table class="scale-table">
+        <thead>
+          <tr><th style="width:80px;">Score</th><th style="width:180px;">Level</th><th>Meaning</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="scale-pill s3">3</span></td><td class="scale-name">Fully Implemented</td><td>Process is documented, consistently followed, and actively monitored with KPI tracking.</td></tr>
+          <tr><td><span class="scale-pill s2">2</span></td><td class="scale-name">Mostly Implemented</td><td>Process is in place with minor gaps in execution, documentation, or monitoring frequency.</td></tr>
+          <tr><td><span class="scale-pill s1">1</span></td><td class="scale-name">Partially Implemented</td><td>Process exists in ad-hoc form or is planned but not consistently practised.</td></tr>
+          <tr><td><span class="scale-pill s0">0</span></td><td class="scale-name">Not Implemented</td><td>No process, no documentation, no consistent practice for this control.</td></tr>
+          <tr><td><span class="scale-pill sna">N/A</span></td><td class="scale-name">Not Applicable</td><td>Control genuinely does not apply to your operation (e.g. cold chain in an ambient-only facility). Excluded from scoring.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Section 4: Aggregation -->
+    <div class="method-section">
+      <h3><span class="num">04</span> Score Aggregation</h3>
+      <p class="lede">How sub-area, pillar and overall percentages are calculated.</p>
+      <ul>
+        <li><strong>Sub-area %</strong> = (sum of scores) &divide; (number of applicable controls &times; 3) &times; 100. N/A controls are excluded from both numerator and denominator.</li>
+        <li><strong>Pillar %</strong> aggregates all applicable controls in the pillar &mdash; not an average of sub-area percentages. This means a sub-area with more controls carries proportionally more weight.</li>
+        <li><strong>Overall %</strong> aggregates all applicable controls across the entire framework using the same control-weighted method.</li>
+        <li><strong>Equal weighting per control</strong> is intentional &mdash; no single control is privileged over another. If your operation considers some controls more critical, treat the report as a starting point for prioritised discussion rather than a definitive ranking.</li>
+      </ul>
+    </div>
+
+    <!-- Section 5: Tiers -->
+    <div class="method-section">
+      <h3><span class="num">05</span> Maturity Tiers</h3>
+      <p class="lede">Where you land on the overall percentage determines your maturity tier.</p>
+      <table class="scale-table">
+        <thead>
+          <tr><th style="width:110px;">Range</th><th style="width:180px;">Tier</th><th>Interpretation</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>90&ndash;100%</strong></td><td class="scale-name" style="color:var(--forest);">Best-in-Class</td><td>Mature, monitored and continuously improving. Sustain through internal audit and peer benchmarking.</td></tr>
+          <tr><td><strong>75&ndash;89%</strong></td><td class="scale-name" style="color:var(--forest-soft);">Compliant</td><td>Solid SOP adherence with isolated gaps. Focus on closing the lowest-scoring sub-areas.</td></tr>
+          <tr><td><strong>60&ndash;74%</strong></td><td class="scale-name" style="color:var(--amber);">Developing</td><td>Foundation in place but execution inconsistent. Prioritise documentation, training and KPI tracking.</td></tr>
+          <tr><td><strong>40&ndash;59%</strong></td><td class="scale-name" style="color:#D97706;">Needs Improvement</td><td>Significant gaps across multiple SOP areas. A structured corrective action plan with clear ownership is needed.</td></tr>
+          <tr><td><strong>0&ndash;39%</strong></td><td class="scale-name" style="color:var(--crimson);">Critical Gap</td><td>Foundational controls missing. Immediate executive attention required &mdash; stock integrity, compliance and safety may be at risk.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Section 6: KPIs -->
+    <div class="method-section">
+      <h3><span class="num">06</span> KPI Evaluation</h3>
+      <p class="lede">Each KPI is benchmarked against an SOP-derived target with three possible statuses.</p>
+      <ul>
+        <li><strong>Meets Target</strong> (green) &mdash; Reported value is on or better than the SOP target.</li>
+        <li><strong>Below Target</strong> (amber) &mdash; Reported value falls between the SOP target and a mid-threshold; meaningful improvement is required.</li>
+        <li><strong>Critical Gap</strong> (red) &mdash; Reported value is worse than the mid-threshold; remediation is urgent.</li>
+        <li><strong>Not Reported</strong> (grey) &mdash; KPI was left blank. Consider this a measurement maturity gap in itself.</li>
+      </ul>
+      <p>
+        KPI targets are taken from the SOP&rsquo;s &ldquo;Performance Indicators&rdquo; sections &mdash; for example, the SOP recommends customs clearance within 7 days, monthly 20-item random audits, and ≥95% availability of critical items. A complete list of KPIs and their targets is shown on Step 3 of the assessment.
+      </p>
+    </div>
+
+    <!-- Section 7: Limitations -->
+    <div class="method-section">
+      <h3><span class="num">07</span> Limitations &amp; Caveats</h3>
+      <p class="lede">What this tool can and cannot tell you.</p>
+      <ul>
+        <li><strong>Self-reported, not independently audited.</strong> Results reflect the assessor&rsquo;s perception. An external audit may surface different findings.</li>
+        <li><strong>Subjective interpretation.</strong> Several controls require honest, informed judgement about what counts as &ldquo;mostly&rdquo; vs &ldquo;fully&rdquo; implemented. Two assessors at the same warehouse may score slightly differently.</li>
+        <li><strong>Snapshot in time.</strong> A score taken today reflects today&rsquo;s state. Operations drift &mdash; we recommend re-assessment at least quarterly.</li>
+        <li><strong>Equal control weighting.</strong> If your business model treats certain controls (e.g. cold chain integrity, controlled substance handling) as critical, treat low scores there as priority regardless of overall percentage.</li>
+        <li><strong>Not a regulatory submission.</strong> This tool does not replace WHO Good Storage and Distribution Practices (GSDP), GMP, GDP, ISO 9001, FSSAI, or any jurisdiction-specific compliance audit. It is a complement, not a substitute.</li>
+        <li><strong>Sector adaptation.</strong> Some controls (e.g. cold chain temperature ranges, vaccine arrival reports) are health-sector specific. Use the N/A option liberally where controls do not apply.</li>
+      </ul>
+    </div>
+
+    <!-- Section 8: Recommended Use -->
+    <div class="method-section">
+      <h3><span class="num">08</span> Recommended Use</h3>
+      <p class="lede">How to get the most out of this tool.</p>
+      <ul>
+        <li><strong>Initial baseline.</strong> Use it to establish where your warehouse stands today and identify the top 5 priority gaps.</li>
+        <li><strong>Internal audit preparation.</strong> Run it before a scheduled audit to spot likely findings and address them in advance.</li>
+        <li><strong>Vendor / 3PL evaluation.</strong> Have prospective logistics partners self-assess and submit the JSON for comparative review.</li>
+        <li><strong>Quarterly maturity tracking.</strong> Re-run every 90 days to track drift, validate remediation, and demonstrate progress to leadership.</li>
+        <li><strong>M&amp;A or due diligence.</strong> Use as a structured first-pass operational review of a target warehouse network.</li>
+        <li><strong>Training tool.</strong> Walk team leaders through the controls in their section to clarify expected practice.</li>
+      </ul>
+    </div>
+
+    <!-- Section 9: Source attribution -->
+    <div class="method-section">
+      <h3><span class="num">09</span> Source &amp; Attribution</h3>
+      <ul>
+        <li><strong>Source framework:</strong> Warehouse Standard Operating Procedures, 2020. Indo-Pacific Health &amp; Supply Chain Data &amp; Technical Assistance Centre (DTAC).</li>
+        <li><strong>Co-authors of original SOPs:</strong> The mSupply Foundation; Beyond Essential Systems.</li>
+        <li><strong>Tool design &amp; engineering:</strong> <a href="https://freightfox.ai" target="_blank" rel="noopener" style="color:var(--rust); font-weight:600;">FreightFox.ai</a> &mdash; freight intelligence platform for Indian manufacturers.</li>
+        <li><strong>Open source:</strong> Released for free use by the warehouse and supply chain community. Embed it on your own internal site, share with peers, or use it as a starting point for a tailored audit framework.</li>
+        <li><strong>Feedback &amp; contributions:</strong> Reach out to the FreightFox team for improvements, sector-specific extensions, or implementation support.</li>
+      </ul>
+    </div>
+
+    <div class="actions-bar">
+      <button type="button" class="btn btn-ghost" onclick="switchView('assessment')">← Back to Assessment</button>
+      <span class="ff-mark">Designed by <a href="https://freightfox.ai" target="_blank" rel="noopener">FreightFox.ai</a></span>
+    </div>
+
+  </div><!-- /view-methodology -->
+
+  <footer class="footer">
+    <div>WAREHOUSE OPS BENCHMARKING TOOL · v1.0 · 2026 · Open-source by <a href="https://freightfox.ai" target="_blank" rel="noopener">FreightFox.ai</a></div>
+    <div>Aligned to DTAC Warehouse SOPs (2020) framework</div>
+  </footer>
+
+</div>
+
+<script>
+/* ============================================================
+   ASSESSMENT FRAMEWORK DATA
+   ============================================================ */
+const FRAMEWORK = {
+  sections: [
+    {
+      id: 'A',
+      title: 'Inbound Operations',
+      subtitle: 'Receiving Goods from Suppliers',
+      subsections: [
+        {
+          id: 'A1', title: 'Preparation for Goods Receipt',
+          purpose: 'To ensure stock receipt occurs in an organised, efficient manner with sufficient time for planning by all stakeholders.',
+          questions: [
+            'Suppliers are required to provide written advance notice (≥2 weeks) of incoming consignments.',
+            'A standard checklist of receipt documents (Invoice, Bill of Lading / Airway Bill, Packing List, Certificates of Analysis, Contract) is verified against the original Purchase Order before delivery.',
+            'Pre-arrival notifications are circulated to all stakeholders — Warehouse Manager, Customs / Clearance Officer, Inspection (R&I) Committee, Cold Chain / Hazardous coordinators where relevant.',
+            'Warehouse space is cleared and prepared in advance based on the expected delivery profile.',
+            'Special-handling items (cold chain, controlled substances, cytotoxic / hazardous) are flagged in advance and routed to the relevant coordinator.',
+            'Adequate staffing is rostered for delivery days based on the expected volume and complexity.'
+          ]
+        },
+        {
+          id: 'A2', title: 'Customs Clearance',
+          purpose: 'To ensure incoming goods are cleared through customs efficiently and without unnecessary cost.',
+          questions: [
+            'A designated Customs Clearance Officer is responsible for incoming shipments.',
+            'Customs assessments (taxes, duties, fees) are verified against the original PO before payment authorisation.',
+            'Average customs clearance time is tracked and benchmarked against the 7-day SOP target.',
+            'A defined approval chain (Procurement Director → President → Finance) is enforced for customs payments.',
+            'Discrepancies in customs documents are escalated to the Contract Management / Procurement function for resolution.'
+          ]
+        },
+        {
+          id: 'A3', title: 'Goods Arrival',
+          purpose: 'To ensure goods are received in good condition and routed correctly within the warehouse.',
+          questions: [
+            'Security performs a preliminary inspection of delivery documents at the gate (correct customer, container count, no obvious damage).',
+            'Returnable shipping containers are tracked using a standard form (container number, owner, dates, penalty rates).',
+            'A defined SOP exists for major contamination, infestation or breakage during transit — Team Leader notifies the Warehouse Director before unloading.',
+            'Goods are organised by item and batch number on pallets in the receipt area, with batch numbers and expiries facing outward.',
+            'Special items (cold chain, controlled, hazardous) are prioritised on arrival and moved to designated areas immediately.',
+            'For cold-chain shipments: temperature monitor checks, Vaccine Arrival Reports (VAR), and Shake Tests are performed where applicable per protocol.'
+          ]
+        },
+        {
+          id: 'A4', title: 'Goods Inspection',
+          purpose: 'To ensure incoming stock is inspected consistently and comprehensively to support quality assurance.',
+          questions: [
+            'An independent Receipt &amp; Inspection (R&amp;I) Committee with at least two signatories inspects every consignment.',
+            'Inspections follow a standardised checklist (item-vs-invoice, formulation/specification, packaging quality, labelling language, expiry dates, condition, damage).',
+            'Random sampling is performed per batch using a documented protocol.',
+            'For cold chain items, evidence of appropriate temperature maintenance throughout transit is verified.',
+            'Inspection outcomes are recorded on a standard form and signed by two committee members (President + member).',
+            'Rejected items are immediately quarantined with each carton clearly marked &ldquo;Not For Use — Quarantined&rdquo;.',
+            'A defined process exists for supplier notification, replacement (no additional charge), and dispute resolution for rejected stock.'
+          ]
+        },
+        {
+          id: 'A5', title: 'Goods Receipt (System Entry)',
+          purpose: 'To ensure inventory records accurately reflect physically received stock at all times.',
+          questions: [
+            'Every approved item is entered into the WMS / ERP with batch, expiry, location, quantity and pack size.',
+            'Partial deliveries and split-batch arrivals are correctly tracked against the original PO so the open balance is visible.',
+            'Items with multiple batches or stored across multiple locations are recorded as separate lines (not aggregated).',
+            'Goods Receipts are cross-referenced with the supplier invoice and PO before finalisation.',
+            'A four-eyes principle is applied for finalising and printing supplier invoices.',
+            'Donated or sample stock entering the warehouse is captured via a controlled supplier invoice / unordered-stock entry path.'
+          ]
+        },
+        {
+          id: 'A6', title: 'Supplier Payments',
+          purpose: 'To ensure suppliers are paid accurately, on time and only for goods properly received.',
+          questions: [
+            'Supplier payments are tied to confirmed Goods Receipts — no payment is issued without receipt.',
+            'Total Outstanding payable per supplier is visible in the WMS or finance system.',
+            'Partial payments and currency conversions are handled through a controlled distribution process across outstanding invoices.',
+            'Payment records are retained, printable and available for audit.'
+          ]
+        }
+      ]
+    },
+    {
+      id: 'B',
+      title: 'Order Fulfilment',
+      subtitle: 'Processing & Distributing Customer Orders',
+      subsections: [
+        {
+          id: 'B1', title: 'Order Processing',
+          purpose: 'To ensure customers order in a standardised manner and orders are received and managed efficiently.',
+          questions: [
+            'Customer facilities follow a published ordering schedule (weekly / monthly / quarterly cycles).',
+            'Orders are authorised by designated personnel before processing (defined approval matrix).',
+            'A defined timeout / escalation rule exists for unattended authorisation requests.',
+            'Paper or offline orders are systematically converted to digital records in the WMS.',
+            'Order-to-dispatch cycle times are tracked monthly and reported.',
+            'Requisitions partially fulfilled remain open in the system to enable later supply.'
+          ]
+        },
+        {
+          id: 'B2', title: 'Picking &amp; Assembling',
+          purpose: 'To ensure orders are picked accurately and assembled efficiently with full traceability.',
+          questions: [
+            'One staff member is designated accountable for assembling each order (single point of accountability).',
+            'Discrepancies (qty / batch / location changes, unavailable stock) are clearly marked on the picking slip.',
+            'Picked items are physically separated from warehouse stock and clearly labelled with the customer name.',
+            'Recycled boxes are clearly marked &ldquo;REPACKED&rdquo; with prior labels crossed out on all sides.',
+            'Special items use SOP-defined containers — polystyrene cool-boxes (≤6&ndash;12 hrs), hard cold-boxes (≤72 hrs), vaccine carriers, hazardous-marked boxes — appropriate to mode of transport.',
+            'Cold chain ice-packs are prepared correctly (conditioned, &ldquo;wet&rdquo; before packing) and only filled with water (not pre-filled blue/green liquid).',
+            'Controlled substances are picked from the safe by the DDA Coordinator with a counter-signed register entry.',
+            'The assembled order is jointly verified against the picking slip by Team Leader and the picker, both signing.',
+            'Four signed copies of the finalised customer invoice are printed and handed to the dispatcher.'
+          ]
+        },
+        {
+          id: 'B3', title: 'Dispatch &amp; Distribution',
+          purpose: 'To ensure orders are dispatched in a timely fashion and arrive complete and in good condition.',
+          questions: [
+            'An annual delivery schedule is prepared based on a National / Regional Distribution Plan.',
+            'A Responsible Officer (Team Leader or Warehouse Staff) is allocated to accompany every dispatch.',
+            'Per-diems and fuel vouchers are issued through a controlled finance process (Logistics + Finance officers).',
+            'Receiving facilities are called ahead to confirm availability and unloading staff.',
+            'Cold-chain items are placed in receiving fridges immediately upon arrival — never offloaded into shipping warehouses.',
+            'Delivery is counted at the destination in the presence of the receiving Pharmacy Officer / Nurse-in-Charge.',
+            'Signed proof-of-delivery is returned to the warehouse and reconciled against the customer invoice.'
+          ]
+        }
+      ]
+    },
+    {
+      id: 'C',
+      title: 'Warehouse Maintenance',
+      subtitle: 'Storage, Conditions, Stocktakes, Expiry, Replenishment & Security',
+      subsections: [
+        {
+          id: 'C1', title: 'Warehouse Storage',
+          purpose: 'To ensure stock is stored in an organised, efficient, accessible manner that minimises loss and damage.',
+          questions: [
+            'Stock is stored on shelves; floor storage is restricted to waterproof, non-perishable items only.',
+            'Short-expiry items are kept in low, accessible locations; bulk long-expiry items in higher locations (FEFO-friendly layout).',
+            'Special-stock coordinators (Cold Chain, Controlled, Hazardous) own clearly demarcated zones, overseen by the Warehouse Manager.',
+            'WMS records are reconciled with physical storage during regular inspections; discrepancies are escalated to the Team Leader.',
+            'A defined Quarantine Area / Expired Items Area exists, with items clearly marked &ldquo;Items for Destruction — Do Not Use&rdquo;.',
+            'All stock-movement transactions (location update, split, consolidate, negative adjustment) are recorded in the WMS.',
+            '&lsquo;Next-to-expire&rsquo; stock found in inaccessible locations is proactively moved to accessible locations.',
+            'Fragile and &lsquo;This Side Up&rsquo; items are handled and stored per their markings.'
+          ]
+        },
+        {
+          id: 'C2', title: 'Storage Conditions',
+          purpose: 'To ensure items are stored at appropriate temperature, humidity and light conditions to maintain product safety and efficacy.',
+          questions: [
+            'Main warehouse temperature is maintained below 25°C (never exceeding 30°C).',
+            'Thermometers are installed at multiple locations and heights, reporting to an electronic database periodically reviewed.',
+            'Cold chain temperatures are continuously monitored (2&ndash;8°C; -20°C frozen) via multi-log loggers with automated alerts on breach.',
+            'Cold-chain temperature is also manually monitored and logged twice daily (morning and afternoon).',
+            'Adequate space is maintained between pallets, between fridges and walls (≈arm&rsquo;s length), and between rows of stacked boxes for airflow.',
+            'Humidity is maintained at ≤60% relative humidity in storage areas (ventilation, fans, AC, dehumidifiers).',
+            'Photosensitive products are protected from direct sunlight (shading, opaque packaging, dark glass bottles).',
+            'Air conditioning, fridges and cool-rooms are on a contracted bi-annual maintenance program; AC filters cleaned monthly.',
+            'All measuring devices (thermometers, hygrometers) are on an annual calibration program traceable to international standards.',
+            'Calibration certificates and master calibration log are retained for ≥5 years.'
+          ]
+        },
+        {
+          id: 'C3', title: 'Stocktakes',
+          purpose: 'To ensure WMS data accurately matches physical stock at all times — supporting auditing, quantification and quality assurance.',
+          questions: [
+            'A full stocktake is performed at the start of every year (January or February), taking up to 5 working days.',
+            'Spot-check (rolling) stocktakes are performed daily by Team Leaders on rotating items.',
+            'A monthly random audit of 20 items is performed and used as an accuracy KPI.',
+            'Pending orders, outstanding goods receipts and undispatched orders are processed before a full stocktake commences.',
+            'During stocktakes, no new customer invoices are created and no stock is moved.',
+            'Stocktakes use printed sheets organised by location, with each location printed only once to prevent double-counting.',
+            'Counting is performed in groups of three with a designated lead per group; sheets cycle through different locations.',
+            'Data entry into the WMS occurs continuously throughout the stocktake, not batched at the end.',
+            'Post-stocktake review meetings are held with senior staff to discuss key findings and training points.',
+            'Physical stocktake sheets are filed and archived for audit purposes.'
+          ]
+        },
+        {
+          id: 'C4', title: 'Expiring Items',
+          purpose: 'To minimise expired items in the warehouse and reduce overall expiration through better stock management.',
+          questions: [
+            'Each Team Leader monitors expiring items in their section without waiting for a rotational lead.',
+            'An Expiring Items Report is run monthly and used to physically check expiring stock on shelves.',
+            'Expired items are physically moved to the Expired Items area and recorded in the WMS as a negative inventory adjustment.',
+            'Expired items are retained for ≥3 months before disposal (audit window) before being taken for disposal per local pharmaceutical waste policy.',
+            'A 6-month forward-looking expiring stock report is sent to senior leadership monthly to drive redistribution / re-allocation decisions.',
+            'A year-aggregated summary of expired stock value is maintained for KPI reporting.'
+          ]
+        },
+        {
+          id: 'C5', title: 'Supplementary Orders',
+          purpose: 'To ensure appropriate quantities of stock are available at all times while minimising wastage.',
+          questions: [
+            'A 3&ndash;15 months stock cover policy is enforced for Normal Items, with annual tenders quantifying a 12-month minimum + 3-month buffer.',
+            'Critical Items are maintained at ≥6 months cover at all times.',
+            'A monthly Months Cover Report is generated, listing items below thresholds (Normal &lt;3m, Critical &lt;6m).',
+            'A senior committee (NMS Commission or equivalent) reviews supplementary orders monthly with the National Director of Pharmacy / equivalent in attendance.',
+            'Estimated Delivery Dates (EDDs) are tracked on outstanding POs with overdue lines flagged in red.',
+            'Supplementary orders are only initiated after considering existing on-order quantities and EDDs to avoid over-ordering.'
+          ]
+        },
+        {
+          id: 'C6', title: 'Security',
+          purpose: 'To keep the warehouse facility secure and safe for both staff and commodities.',
+          questions: [
+            '24-hour uniformed security is on duty with credentialed access control; security may challenge any person seeking entry.',
+            'Security inspects delivery vehicle paperwork at entry and is trained to redirect mis-delivered vehicles.',
+            'The facility has a working phone, radio, fire extinguishers (positioned at convenient points and known to staff) and adequate external lighting.',
+            'A perimeter fence (concrete or solid metal bars on concrete footings) and a lockable, controlled gate exist; gate is locked outside business hours.',
+            'External visitors are logged (name, organisation, reason, time in / time out, signature) and escorted at all times inside the warehouse.',
+            'No stock may be removed without express NMS President / equivalent authorisation and a documented invoice / cargo receipt.',
+            'Main roller doors remain closed unless receiving or dispatching; office and warehouse facilities are locked outside business hours.',
+            'A CCTV system is in place with footage stored on a local server with restricted, locked access.',
+            'CCTV footage review is performed by IT staff in the presence of senior staff members.',
+            'Suspected inappropriate stock removal by any staff is reported immediately to Warehouse Director / Manager.'
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+const KPIS = [
+  { id:'k1', label:'Stock stored on the ground (% by value)', source:'Receiving / Storage SOP', unit:'%', target:'≤ 5%', direction:'lower', threshold:5, midThreshold:15 },
+  { id:'k2', label:'Average order receipt-to-dispatch time', source:'Picking & Assembling SOP', unit:'hours', target:'≤ 24 hrs', direction:'lower', threshold:24, midThreshold:48 },
+  { id:'k3', label:'Stock accuracy (monthly audit of 20 items)', source:'Stocktakes SOP', unit:'%', target:'≥ 98%', direction:'higher', threshold:98, midThreshold:92 },
+  { id:'k4', label:'Daily spot-check stocktakes performed', source:'Stocktakes SOP', unit:'per month', target:'≥ 20 per month', direction:'higher', threshold:20, midThreshold:10 },
+  { id:'k5', label:'Availability of critical items (% of 100)', source:'Supplementary Orders SOP', unit:'%', target:'≥ 95%', direction:'higher', threshold:95, midThreshold:85 },
+  { id:'k6', label:'Inward goods cleared customs within 7 days', source:'Customs Clearance SOP', unit:'%', target:'≥ 90%', direction:'higher', threshold:90, midThreshold:75 },
+  { id:'k7', label:'Orders with 100% picking accuracy', source:'Picking & Assembling SOP', unit:'%', target:'≥ 98%', direction:'higher', threshold:98, midThreshold:92 },
+  { id:'k8', label:'Cold chain integrity (days/year compliant)', source:'Storage Conditions SOP', unit:'days', target:'≥ 360 days', direction:'higher', threshold:360, midThreshold:340 },
+  { id:'k9', label:'Expired stock (% by value annually)', source:'Expiring Items SOP', unit:'%', target:'≤ 1%', direction:'lower', threshold:1, midThreshold:3 },
+  { id:'k10', label:'Total expired stock value (annual)', source:'Expiring Items SOP', unit:'₹ /yr', target:'Track YoY trend', direction:'lower', threshold:null, midThreshold:null }
+];
+
+const TIERS = [
+  { id:'t1', range:[90,100], name:'Best-in-Class', desc:'Operations are mature, monitored and continuously improving. Sustain excellence through internal audit and benchmarking against peers.' },
+  { id:'t2', range:[75,89.99], name:'Compliant', desc:'Solid SOP adherence with isolated gaps. Focus next on closing the lowest-scoring sub-areas to reach Best-in-Class.' },
+  { id:'t3', range:[60,74.99], name:'Developing', desc:'Foundation is in place but execution is inconsistent. Prioritise documentation, training and KPI tracking to lift maturity.' },
+  { id:'t4', range:[40,59.99], name:'Needs Improvement', desc:'Significant gaps across multiple SOP areas. A structured corrective action plan with clear ownership is required.' },
+  { id:'t5', range:[0,39.99], name:'Critical Gap', desc:'Foundational controls are missing. Immediate executive attention is required — stock integrity, compliance and patient/customer safety may be at risk.' }
+];
+
+/* ============================================================
+   DATA CAPTURE — GOOGLE APPS SCRIPT WEB APP
+   ------------------------------------------------------------
+   Two payloads are sent to a single Apps Script endpoint:
+     1. type:'lead'       — fired on gate unlock (Name/Email/Phone)
+     2. type:'assessment' — fired on report generation
+                            (full setup + scores + KPIs + responses)
+   Both land in the SAME Google Sheet inside your Drive folder,
+   on different tabs ('Leads' and 'Assessments').
+
+   ➜ SETUP STEPS (one-time, ~10 min):
+     1. Open https://script.google.com → "New project"
+     2. Delete the default code. Open the companion file
+        `apps_script_capture.gs` (provided alongside this HTML)
+        and paste its contents into the editor.
+     3. At the top of the script, the FOLDER_ID is already set
+        to your folder. Change it if you ever move the folder.
+     4. Save (Ctrl/Cmd+S) and name the project
+        "Warehouse Benchmark Capture".
+     5. Click "Deploy" → "New deployment" → cog icon → "Web app".
+        - Description: any
+        - Execute as: Me
+        - Who has access: Anyone
+        Click "Deploy". Approve permissions when prompted.
+     6. Copy the "Web app URL" — looks like
+        https://script.google.com/macros/s/AKfyc.../exec
+     7. Paste it into APPS_SCRIPT.url below.
+   ============================================================ */
+const APPS_SCRIPT = {
+  enabled: true,
+  url: 'https://script.google.com/a/macros/freightfox.ai/s/AKfycbxEwYMqYOWZflvBzpVpjC1wQEDJzCQYaDhvrKJ0arWr7vWCyMAm4OQI9A5z25CLC295/exec'
+};
+
+async function postToAppsScript(payload){
+  if (!APPS_SCRIPT.enabled) return;
+  if (APPS_SCRIPT.url.includes('PASTE_')){
+    console.info('[Capture] Skipped — Apps Script URL not yet configured.');
+    return;
+  }
+  try {
+    // text/plain content-type avoids the CORS preflight that Apps Script
+    // doesn't handle. The script reads e.postData.contents as a string
+    // and JSON.parse()s it server-side.
+    await fetch(APPS_SCRIPT.url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    console.info('[Capture] Submitted:', payload.type);
+  } catch (e){
+    console.warn('[Capture] Submission failed:', e);
+  }
+}
+
+async function submitLead(data){
+  return postToAppsScript({
+    type: 'lead',
+    name: data.name,
+    email: data.email,
+    phone: data.phone,
+    userAgent: navigator.userAgent,
+    sourceUrl: window.location.href,
+    submittedAt: new Date().toISOString()
+  });
+}
+
+async function submitAssessment(){
+  const { sectionScores, subScores, overallPct } = computeScores();
+  const tier = tierFor(overallPct);
+
+  // Round percentages to 2dp; null values become empty for sheet legibility
+  const round = v => (v === null || v === undefined || isNaN(v)) ? '' : parseFloat(v.toFixed(2));
+
+  const subAreasObj = {};
+  Object.entries(subScores).forEach(([k, v]) => { subAreasObj[k] = round(v.pct); });
+
+  const payload = {
+    type: 'assessment',
+    setup: state.setup,
+    overall: {
+      percent: round(overallPct),
+      tier: tier.name
+    },
+    sections: {
+      A: round(sectionScores.A.pct),
+      B: round(sectionScores.B.pct),
+      C: round(sectionScores.C.pct)
+    },
+    subAreas: subAreasObj,
+    kpis: { ...state.kpis },
+    responses: { ...state.responses },
+    userAgent: navigator.userAgent,
+    sourceUrl: window.location.href,
+    submittedAt: new Date().toISOString()
+  };
+
+  return postToAppsScript(payload);
+}
+
+/* ============================================================
+   STATE & UTILITIES
+   ============================================================ */
+const state = {
+  step: 1,
+  setup: {},
+  responses: {},   // { questionKey: 0 | 1 | 2 | 3 | 'na' }
+  kpis: {},
+  access: {}       // captured from gate: name, email, phone
+};
+
+function $(s){ return document.querySelector(s); }
+function $$(s){ return Array.from(document.querySelectorAll(s)); }
+
+/* ============================================================
+   ACCESS GATE
+   ============================================================ */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+function showGateError(fieldId, msg){
+  const input = $('#' + fieldId);
+  const errEl = document.querySelector(`.gate-error-msg[data-for="${fieldId}"]`);
+  if (msg){
+    input.classList.add('error');
+    errEl.textContent = msg;
+    errEl.classList.add('show');
+  } else {
+    input.classList.remove('error');
+    errEl.textContent = '';
+    errEl.classList.remove('show');
+  }
+}
+
+function validateGate(){
+  const name = $('#gateName').value.trim();
+  const email = $('#gateEmail').value.trim();
+  const phone = $('#gatePhone').value.trim();
+  let ok = true;
+
+  if (!name){ showGateError('gateName', 'Please enter your full name'); ok = false; }
+  else if (name.length < 2){ showGateError('gateName', 'Name is too short'); ok = false; }
+  else showGateError('gateName', '');
+
+  if (!email){ showGateError('gateEmail', 'Please enter your email address'); ok = false; }
+  else if (!EMAIL_RE.test(email)){ showGateError('gateEmail', 'Please enter a valid email address'); ok = false; }
+  else showGateError('gateEmail', '');
+
+  const digits = phone.replace(/\D/g, '');
+  if (!phone){ showGateError('gatePhone', 'Please enter your contact number'); ok = false; }
+  else if (digits.length < 7 || digits.length > 15){ showGateError('gatePhone', 'Contact number must be 7–15 digits'); ok = false; }
+  else showGateError('gatePhone', '');
+
+  if (!ok) return false;
+  state.access = { name, email, phone };
+  return true;
+}
+
+function unlockTool(){
+  if (!validateGate()) return;
+  // Pre-fill setup form with gate values
+  $('#assessorName').value = state.access.name;
+  $('#assessorEmail').value = state.access.email;
+  $('#assessorPhone').value = state.access.phone;
+
+  // Submit lead to Google Form (fire-and-forget, never blocks)
+  submitLead(state.access);
+
+  // Hide overlay
+  $('#gateOverlay').classList.add('hidden');
+  document.body.classList.remove('gate-locked');
+}
+
+/* ============================================================
+   VIEW SWITCHING (Assessment ↔ Methodology)
+   ============================================================ */
+function switchView(view){
+  $$('.view').forEach(v => v.classList.remove('active'));
+  $$('.view-tab').forEach(t => t.classList.remove('active'));
+  const targetView = $('#view-' + view);
+  const targetTab = document.querySelector(`.view-tab[data-view="${view}"]`);
+  if (targetView) targetView.classList.add('active');
+  if (targetTab) targetTab.classList.add('active');
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function generateAssessmentId(){
+  const d = new Date();
+  const y = d.getFullYear().toString().slice(-2);
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  const rnd = Math.random().toString(36).slice(2,7).toUpperCase();
+  return `WHB-${y}${m}${day}-${rnd}`;
+}
+
+function todayISO(){
+  const d = new Date();
+  return d.toISOString().slice(0,10);
+}
+
+/* ============================================================
+   STEP 1: SETUP
+   ============================================================ */
+function initSetup(){
+  $('#assessDate').value = todayISO();
+  $('#assessId').value = generateAssessmentId();
+}
+
+function captureSetup(){
+  state.setup = {
+    orgName: $('#orgName').value.trim(),
+    orgSector: $('#orgSector').value,
+    whName: $('#whName').value.trim(),
+    whLocation: $('#whLocation').value.trim(),
+    whSize: $('#whSize').value,
+    whSkus: $('#whSkus').value,
+    assessorName: $('#assessorName').value.trim(),
+    assessorRole: $('#assessorRole').value.trim(),
+    assessorEmail: $('#assessorEmail').value.trim(),
+    assessorPhone: $('#assessorPhone').value.trim(),
+    assessDate: $('#assessDate').value,
+    assessId: $('#assessId').value,
+    scopeNotes: $('#scopeNotes').value.trim()
+  };
+}
+
+function validateSetup(){
+  captureSetup();
+  const required = [
+    {k:'orgName', label:'Organisation Name'},
+    {k:'whName', label:'Warehouse Name'},
+    {k:'assessorName', label:'Assessor Name'},
+    {k:'assessorEmail', label:'Email Address'},
+    {k:'assessorPhone', label:'Contact Number'}
+  ];
+  const missing = required.filter(r => !state.setup[r.k]).map(r => r.label);
+  if (missing.length){
+    alert('Please fill in: ' + missing.join(', '));
+    return false;
+  }
+  if (!EMAIL_RE.test(state.setup.assessorEmail)){
+    alert('Please enter a valid email address.');
+    $('#assessorEmail').focus();
+    return false;
+  }
+  const digits = state.setup.assessorPhone.replace(/\D/g, '');
+  if (digits.length < 7 || digits.length > 15){
+    alert('Please enter a valid contact number (7–15 digits).');
+    $('#assessorPhone').focus();
+    return false;
+  }
+  return true;
+}
+
+/* ============================================================
+   STEP 2: ASSESSMENT RENDER
+   ============================================================ */
+function totalQuestions(){
+  let n=0;
+  FRAMEWORK.sections.forEach(s => s.subsections.forEach(ss => n += ss.questions.length));
+  return n;
+}
+
+function renderAssessment(){
+  // Build TOC
+  const tocBody = $('#tocBody');
+  tocBody.innerHTML = FRAMEWORK.sections.map(s => `
+    <div class="toc-section">
+      <div class="toc-section-title">${s.id}. ${s.title}</div>
+      ${s.subsections.map(ss => `
+        <div class="toc-item" data-target="ss-${ss.id}" id="toc-${ss.id}">
+          <span>${ss.id} &middot; ${ss.title}</span>
+          <span class="progress-dot"></span>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+
+  $$('.toc-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const target = $('#' + item.dataset.target);
+      if (target) target.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+  });
+
+  // Build assessment body
+  const body = $('#assessmentBody');
+  body.innerHTML = FRAMEWORK.sections.map(section => `
+    <div class="section-block" id="section-${section.id}">
+      <div class="section-banner">
+        <div class="num">${section.id}</div>
+        <div class="section-banner-text">
+          <h3>${section.title}</h3>
+          <div class="sub">${section.subtitle}</div>
+        </div>
+      </div>
+      ${section.subsections.map(ss => `
+        <div class="subsection" id="ss-${ss.id}">
+          <div class="subsection-header">
+            <h4>${ss.id} · ${ss.title}</h4>
+            <div class="subsection-meta">${ss.questions.length} controls</div>
+          </div>
+          <div class="subsection-purpose">Purpose &mdash; ${ss.purpose}</div>
+          ${ss.questions.map((q, idx) => {
+            const key = `${ss.id}_q${idx+1}`;
+            return `
+              <div class="question" data-key="${key}" data-ssid="${ss.id}">
+                <div class="question-text">
+                  <span class="qnum">Q${String(idx+1).padStart(2,'0')}</span>
+                  <span>${q}</span>
+                </div>
+                <div class="options">
+                  ${optionTemplate(key, '3', 'Fully', 'Documented &amp; monitored')}
+                  ${optionTemplate(key, '2', 'Mostly', 'Minor gaps')}
+                  ${optionTemplate(key, '1', 'Partially', 'Ad-hoc / planned')}
+                  ${optionTemplate(key, '0', 'Not Done', 'No process')}
+                  ${optionTemplate(key, 'na', 'N/A', 'Excluded')}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+
+  // Wire up options
+  $$('.option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      const key = opt.dataset.key;
+      const score = opt.dataset.score;
+      // Clear siblings
+      opt.parentElement.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+      state.responses[key] = score === 'na' ? 'na' : parseInt(score, 10);
+      updateProgress();
+    });
+  });
+
+  // Restore any prior responses
+  Object.entries(state.responses).forEach(([key, val]) => {
+    const opt = document.querySelector(`.option[data-key="${key}"][data-score="${val}"]`);
+    if (opt) opt.classList.add('selected');
+  });
+
+  updateProgress();
+}
+
+function optionTemplate(key, score, label, desc){
+  return `
+    <label class="option" data-key="${key}" data-score="${score}">
+      <span class="opt-score">${score === 'na' ? 'N/A' : score}</span>
+      <span class="opt-label">${label}</span>
+    </label>
+  `;
+}
+
+function updateProgress(){
+  const total = totalQuestions();
+  const answered = Object.keys(state.responses).length;
+  const pct = total ? Math.round(answered/total*100) : 0;
+  $('#progFill').style.width = pct + '%';
+  $('#progText').textContent = `${answered} of ${total} answered · ${pct}%`;
+
+  // Per-subsection progress dots
+  FRAMEWORK.sections.forEach(s => s.subsections.forEach(ss => {
+    const tocItem = $('#toc-' + ss.id);
+    if (!tocItem) return;
+    const total = ss.questions.length;
+    let answered = 0;
+    for (let i=1; i<=total; i++){
+      if (state.responses[`${ss.id}_q${i}`] !== undefined) answered++;
+    }
+    tocItem.classList.remove('partial','complete');
+    if (answered === total) tocItem.classList.add('complete');
+    else if (answered > 0) tocItem.classList.add('partial');
+  }));
+}
+
+/* ============================================================
+   STEP 3: KPI INPUTS
+   ============================================================ */
+function renderKPIs(){
+  const grid = $('#kpiGrid');
+  grid.innerHTML = KPIS.map(k => `
+    <div class="kpi-card">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-source">Source · ${k.source}</div>
+      <div class="kpi-input-row">
+        <input type="number" id="kpi_${k.id}" step="0.01" min="0" placeholder="—" value="${state.kpis[k.id] ?? ''}" />
+        <span class="unit">${k.unit}</span>
+      </div>
+      <div class="kpi-target">
+        <span>Target</span><span class="target-value">${k.target}</span>
+      </div>
+    </div>
+  `).join('');
+
+  KPIS.forEach(k => {
+    const inp = $('#kpi_' + k.id);
+    inp.addEventListener('input', () => {
+      const v = inp.value === '' ? null : parseFloat(inp.value);
+      state.kpis[k.id] = v;
+    });
+  });
+}
+
+/* ============================================================
+   STEP 4: REPORT GENERATION
+   ============================================================ */
+function computeScores(){
+  const sectionScores = {};
+  const subScores = {};
+  let overallNum = 0, overallDen = 0;
+
+  FRAMEWORK.sections.forEach(s => {
+    let secNum = 0, secDen = 0;
+    s.subsections.forEach(ss => {
+      let num = 0, den = 0;
+      ss.questions.forEach((_, idx) => {
+        const r = state.responses[`${ss.id}_q${idx+1}`];
+        if (r === undefined || r === 'na') return;
+        num += r; den += 3;
+      });
+      const pct = den ? (num/den)*100 : null;
+      subScores[ss.id] = { num, den, pct, count: ss.questions.length };
+      secNum += num; secDen += den;
+    });
+    const sPct = secDen ? (secNum/secDen)*100 : 0;
+    sectionScores[s.id] = { num: secNum, den: secDen, pct: sPct };
+    overallNum += secNum; overallDen += secDen;
+  });
+
+  const overallPct = overallDen ? (overallNum/overallDen)*100 : 0;
+  return { sectionScores, subScores, overallPct, overallNum, overallDen };
+}
+
+function tierFor(pct){
+  return TIERS.find(t => pct >= t.range[0] && pct <= t.range[1]) || TIERS[TIERS.length-1];
+}
+
+function bandFor(pct){
+  if (pct === null || pct === undefined) return 'na';
+  if (pct >= 75) return 'high';
+  if (pct >= 55) return 'mid';
+  return 'low';
+}
+
+function evalKPI(k, value){
+  if (value === null || value === undefined || isNaN(value)) return { status:'na', label:'Not Reported' };
+  if (k.threshold === null) return { status:'partial', label:'Tracked' };
+  if (k.direction === 'higher'){
+    if (value >= k.threshold) return { status:'meets', label:'Meets Target' };
+    if (value >= k.midThreshold) return { status:'partial', label:'Below Target' };
+    return { status:'miss', label:'Critical Gap' };
+  } else {
+    if (value <= k.threshold) return { status:'meets', label:'Meets Target' };
+    if (value <= k.midThreshold) return { status:'partial', label:'Above Target' };
+    return { status:'miss', label:'Critical Gap' };
+  }
+}
+
+function generateReport(){
+  if (!state.setup.orgName) captureSetup();
+  const { sectionScores, subScores, overallPct } = computeScores();
+  const tier = tierFor(overallPct);
+
+  // Strengths & Gaps
+  const subList = FRAMEWORK.sections.flatMap(s => s.subsections.map(ss => ({
+    id: ss.id, title: ss.title, sectionTitle: s.title, ...subScores[ss.id]
+  }))).filter(x => x.pct !== null);
+
+  const strengths = [...subList].sort((a,b) => b.pct - a.pct).slice(0,5);
+  const gaps = [...subList].sort((a,b) => a.pct - b.pct).slice(0,5);
+
+  // KPI rows
+  const kpiRows = KPIS.map(k => {
+    const v = state.kpis[k.id];
+    const ev = evalKPI(k, v);
+    return { kpi:k, value:v, eval:ev };
+  });
+
+  // Recommendations: derived from gaps and unmet KPIs
+  const recs = buildRecommendations(gaps, kpiRows);
+
+  // Build HTML
+  const c = $('#reportContainer');
+  c.innerHTML = `
+    <article class="report" id="reportContent">
+      <header class="report-masthead">
+        <div class="left">
+          <div class="doc-tag">Warehouse Benchmarking Report</div>
+          <h2>${escapeHTML(state.setup.orgName) || '—'}</h2>
+          <div style="font-family:'Fraunces', serif; font-style:italic; color:var(--ink-soft); font-size:15px; margin-top:4px;">
+            ${escapeHTML(state.setup.whName)}${state.setup.whLocation ? ' · ' + escapeHTML(state.setup.whLocation) : ''}
+          </div>
+        </div>
+        <div class="right">
+          <div><span class="label">Assessor</span> · ${escapeHTML(state.setup.assessorName)}${state.setup.assessorRole ? ', ' + escapeHTML(state.setup.assessorRole) : ''}</div>
+          <div><span class="label">Email</span> · ${escapeHTML(state.setup.assessorEmail)}</div>
+          <div><span class="label">Contact</span> · ${escapeHTML(state.setup.assessorPhone)}</div>
+          <div><span class="label">Date</span> · ${formatDate(state.setup.assessDate)}</div>
+          <div><span class="label">Assessment ID</span> · ${escapeHTML(state.setup.assessId)}</div>
+          ${state.setup.orgSector ? `<div><span class="label">Sector</span> · ${escapeHTML(state.setup.orgSector)}</div>` : ''}
+        </div>
+      </header>
+
+      <!-- SUMMARY -->
+      <div class="report-summary">
+        <div class="score-hero">
+          <div class="label">Overall Compliance</div>
+          <div class="score-value">${overallPct.toFixed(1)}<sup>%</sup></div>
+          <div class="tier">${tier.name}</div>
+          <div class="tier-desc">${tier.desc}</div>
+        </div>
+        <div class="summary-stats">
+          <div class="stat">
+            <span class="label">Inbound Operations</span>
+            <span class="value ${bandFor(sectionScores.A.pct) === 'high' ? 'pos' : (bandFor(sectionScores.A.pct) === 'low' ? 'neg' : '')}">${sectionScores.A.pct.toFixed(0)}%</span>
+          </div>
+          <div class="stat">
+            <span class="label">Order Fulfilment</span>
+            <span class="value ${bandFor(sectionScores.B.pct) === 'high' ? 'pos' : (bandFor(sectionScores.B.pct) === 'low' ? 'neg' : '')}">${sectionScores.B.pct.toFixed(0)}%</span>
+          </div>
+          <div class="stat">
+            <span class="label">Warehouse Maintenance</span>
+            <span class="value ${bandFor(sectionScores.C.pct) === 'high' ? 'pos' : (bandFor(sectionScores.C.pct) === 'low' ? 'neg' : '')}">${sectionScores.C.pct.toFixed(0)}%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIER LEGEND -->
+      <h3 class="report-h3">Maturity Tier <span class="label-mono">Where you stand</span></h3>
+      <div class="tier-legend">
+        ${TIERS.slice().reverse().map(t => `
+          <div class="tier-item t${TIERS.indexOf(t)+1} ${t.id === tier.id ? 'current' : ''}">
+            <div class="range">${t.range[0]}–${t.range[1] === 100 ? '100' : t.range[1].toFixed(0)}%</div>
+            <div class="name">${t.name}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- SECTION BARS -->
+      <h3 class="report-h3">Pillar Scores <span class="label-mono">Industry benchmark = 75% (Compliant tier floor)</span></h3>
+      <div class="section-scores">
+        ${FRAMEWORK.sections.map(s => {
+          const sc = sectionScores[s.id];
+          const band = bandFor(sc.pct);
+          return `
+            <div class="score-bar-row">
+              <div class="name">${s.id}. ${s.title}<small>${s.subsections.length} sub-areas</small></div>
+              <div class="score-bar-track">
+                <div class="benchmark-marker" style="left:75%;"></div>
+                <div class="score-bar-fill ${band}" style="width:${sc.pct}%;">${sc.pct >= 8 ? sc.pct.toFixed(0)+'%' : ''}</div>
+              </div>
+              <div class="pct">${sc.pct.toFixed(0)}<span style="font-size:14px; color:var(--muted);">%</span></div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <!-- HEATMAP -->
+      <h3 class="report-h3">Sub-Area Heatmap <span class="label-mono">15 controls areas</span></h3>
+      <div class="heatmap">
+        ${FRAMEWORK.sections.flatMap(s => s.subsections.map(ss => {
+          const sc = subScores[ss.id];
+          const band = bandFor(sc.pct);
+          return `
+            <div class="heat-cell ${band}" title="${ss.title}: ${sc.pct === null ? 'N/A' : sc.pct.toFixed(0) + '%'}">
+              <div class="name">${ss.id} ${ss.title}</div>
+              <div class="pct">${sc.pct === null ? 'N/A' : sc.pct.toFixed(0) + '%'}</div>
+            </div>
+          `;
+        })).join('')}
+      </div>
+
+      <!-- INSIGHTS -->
+      <h3 class="report-h3">Strengths &amp; Gaps <span class="label-mono">Top 5 of each</span></h3>
+      <div class="insights">
+        <div class="insight-col strengths">
+          <h4>▲ Strongest Areas</h4>
+          <ul class="insight-list">
+            ${strengths.length ? strengths.map((g,i) => `
+              <li>
+                <span class="marker">0${i+1}</span>
+                <span><strong>${g.id} ${g.title}</strong> · ${g.pct.toFixed(0)}%<br/>
+                <span style="color:var(--muted); font-size:12px;">${g.sectionTitle}</span></span>
+              </li>
+            `).join('') : '<li><span class="marker">—</span><span>No data — complete the assessment to surface strengths.</span></li>'}
+          </ul>
+        </div>
+        <div class="insight-col gaps">
+          <h4>▼ Priority Gaps</h4>
+          <ul class="insight-list">
+            ${gaps.length ? gaps.map((g,i) => `
+              <li>
+                <span class="marker">0${i+1}</span>
+                <span><strong>${g.id} ${g.title}</strong> · ${g.pct.toFixed(0)}%<br/>
+                <span style="color:var(--muted); font-size:12px;">${g.sectionTitle}</span></span>
+              </li>
+            `).join('') : '<li><span class="marker">—</span><span>No data.</span></li>'}
+          </ul>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <h3 class="report-h3">Operational KPIs <span class="label-mono">Actual vs SOP target</span></h3>
+      <table class="kpi-table">
+        <thead>
+          <tr>
+            <th style="width:40%;">Metric</th>
+            <th style="width:18%;">Actual</th>
+            <th style="width:18%;">Target</th>
+            <th style="width:24%;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${kpiRows.map(r => {
+            const reported = r.value !== null && r.value !== undefined && !isNaN(r.value);
+            return `
+              <tr ${!reported ? 'class="no-data"' : ''}>
+                <td class="metric-name">${r.kpi.label}<br/><span style="font-family:'JetBrains Mono', monospace; font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; font-weight:400;">${r.kpi.source}</span></td>
+                <td class="value">${reported ? r.value + ' ' + r.kpi.unit : '—'}</td>
+                <td>${r.kpi.target}</td>
+                <td><span class="kpi-status ${r.eval.status === 'meets' ? 'meets' : (r.eval.status === 'miss' ? 'miss' : 'partial')}">${r.eval.label}</span></td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+
+      <!-- RECOMMENDATIONS -->
+      <h3 class="report-h3">Recommended Actions <span class="label-mono">Prioritised remediation plan</span></h3>
+      <div class="recs-list">
+        ${recs.map((r,i) => `
+          <div class="rec-item">
+            <div class="rec-num">${String(i+1).padStart(2,'0')}</div>
+            <div class="rec-content">
+              <h5>${r.title}</h5>
+              <p>${r.text}</p>
+              <div class="rec-meta">${r.tag} · Priority: ${r.priority}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- FOOTER NOTE -->
+      <div style="margin-top:48px; padding:18px 22px; background:var(--paper); border-left:3px solid var(--ink); font-size:12px; color:var(--ink-soft); line-height:1.55;">
+        <strong style="color:var(--ink);">Methodology.</strong> Each control is scored on a 0&ndash;3 maturity scale (Not Implemented, Partial, Mostly, Fully). N/A items are excluded from the denominator. Sub-area, pillar and overall scores are weighted equally by control count. KPI thresholds derive from the DTAC Warehouse SOPs (2020) Performance Indicators framework. Submitted assessments are stored in the tool operator&rsquo;s Google Drive for benchmarking and follow-up purposes.
+      </div>
+      <div style="margin-top:14px; padding:18px 22px; background:linear-gradient(135deg, var(--ink) 0%, var(--slate) 100%); color:var(--bg); font-size:12.5px; line-height:1.6; position:relative; overflow:hidden;">
+        <div style="position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--rust);"></div>
+        <strong style="color:#FFD7BD;">Disclaimer.</strong> This is an open-source diagnostic designed by <a href="https://freightfox.ai" target="_blank" rel="noopener" style="color:#FFD7BD; text-decoration:underline;">FreightFox.ai</a>. It provides a structured first look at warehouse maturity but is <strong style="color:#FFD7BD;">not a substitute for professional audit</strong>. For deeper interpretation, gap remediation or implementation support, please consult internal subject-matter experts or reach out to the FreightFox team.
+      </div>
+    </article>
+  `;
+
+  // Capture full assessment payload to Apps Script (fire-and-forget)
+  submitAssessment();
+}
+
+function buildRecommendations(gaps, kpiRows){
+  const recs = [];
+  // From gaps
+  gaps.slice(0,5).forEach((g,i) => {
+    const sub = FRAMEWORK.sections.flatMap(s => s.subsections).find(ss => ss.id === g.id);
+    if (!sub) return;
+    let priority = 'High';
+    if (g.pct >= 60) priority = 'Medium';
+    if (g.pct < 40) priority = 'Critical';
+    let action = '';
+    if (g.pct < 40){
+      action = `Foundational controls in <strong>${sub.title}</strong> are largely absent. Establish written SOPs, assign single-point ownership and roll out staff training within 30 days.`;
+    } else if (g.pct < 60){
+      action = `Controls in <strong>${sub.title}</strong> are inconsistently applied. Audit current practice against the SOP, document the standard and put a monthly KPI review in place.`;
+    } else {
+      action = `Close residual gaps in <strong>${sub.title}</strong> by formalising documentation, monitoring frequency and escalation triggers. Target 90%+ within one quarter.`;
+    }
+    recs.push({
+      title: `Lift ${g.id} ${g.title} from ${g.pct.toFixed(0)}% to 90%+`,
+      text: action,
+      tag: g.sectionTitle,
+      priority
+    });
+  });
+
+  // From missed KPIs
+  const missed = kpiRows.filter(r => r.eval.status === 'miss');
+  missed.slice(0,3).forEach(r => {
+    recs.push({
+      title: `Close KPI gap: ${r.kpi.label}`,
+      text: `Current performance (${r.value} ${r.kpi.unit}) is below the SOP target (${r.kpi.target}). Root-cause the variance, define a remediation owner and report monthly until the target is met for three consecutive months.`,
+      tag: r.kpi.source,
+      priority: 'High'
+    });
+  });
+
+  // Always recommend a review cadence if results exist
+  if (gaps.length){
+    recs.push({
+      title: 'Establish a recurring 90-day re-assessment cadence',
+      text: 'Re-run this self-assessment quarterly to track maturity drift. Compare scores against this baseline and use the heatmap to direct internal audit attention to the largest movers.',
+      tag: 'Governance',
+      priority: 'Medium'
+    });
+  }
+
+  return recs;
+}
+
+function escapeHTML(s){
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function formatDate(iso){
+  if (!iso) return '—';
+  try{
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+  } catch(e){ return iso; }
+}
+
+/* ============================================================
+   STEP NAVIGATION
+   ============================================================ */
+function goToStep(n){
+  if (n === 2 && state.step === 1){
+    if (!validateSetup()) return;
+  }
+  if (n === 3 && state.step === 2){
+    captureSetup();
+  }
+  if (n === 4){
+    captureSetup();
+    generateReport();
+  }
+  state.step = n;
+
+  $$('.stage').forEach(s => s.classList.remove('active'));
+  $('#stage-' + n).classList.add('active');
+
+  $$('.step').forEach(s => {
+    const sn = parseInt(s.dataset.step, 10);
+    s.classList.remove('active','completed');
+    if (sn === n) s.classList.add('active');
+    else if (sn < n) s.classList.add('completed');
+  });
+
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+/* ============================================================
+   DOWNLOAD JSON
+   ============================================================ */
+function downloadJSON(){
+  captureSetup();
+  const { sectionScores, subScores, overallPct } = computeScores();
+  const tier = tierFor(overallPct);
+
+  const payload = {
+    meta: {
+      tool: 'Warehouse Operations Benchmarking & Compliance Tool',
+      version: '1.0',
+      framework: 'DTAC Warehouse SOPs (2020)',
+      generatedAt: new Date().toISOString()
+    },
+    organisation: state.setup,
+    overall: {
+      compliancePercent: parseFloat(overallPct.toFixed(2)),
+      tier: tier.name,
+      tierDescription: tier.desc
+    },
+    sections: Object.entries(sectionScores).map(([id, sc]) => ({
+      id,
+      title: FRAMEWORK.sections.find(s => s.id === id).title,
+      compliancePercent: parseFloat(sc.pct.toFixed(2))
+    })),
+    subAreas: Object.entries(subScores).map(([id, sc]) => ({
+      id,
+      title: FRAMEWORK.sections.flatMap(s => s.subsections).find(ss => ss.id === id).title,
+      compliancePercent: sc.pct === null ? null : parseFloat(sc.pct.toFixed(2)),
+      controlCount: sc.count
+    })),
+    responses: state.responses,
+    kpis: KPIS.map(k => ({
+      id: k.id,
+      label: k.label,
+      value: state.kpis[k.id] ?? null,
+      unit: k.unit,
+      target: k.target,
+      evaluation: evalKPI(k, state.kpis[k.id]).label
+    }))
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${state.setup.assessId || 'warehouse-benchmark'}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ============================================================
+   STEPPER CLICK NAVIGATION
+   ============================================================ */
+$$('.step').forEach(s => {
+  s.addEventListener('click', () => {
+    const n = parseInt(s.dataset.step, 10);
+    if (n < state.step || s.classList.contains('completed')) goToStep(n);
+    else if (n === state.step) return;
+    else goToStep(n);
+  });
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+window.addEventListener('DOMContentLoaded', () => {
+  // Gate form
+  $('#gateForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    unlockTool();
+  });
+  // Clear errors on input
+  ['gateName','gateEmail','gatePhone'].forEach(id => {
+    $('#' + id).addEventListener('input', () => showGateError(id, ''));
+  });
+  // Allow Enter in any gate field to submit
+  ['gateName','gateEmail','gatePhone'].forEach(id => {
+    $('#' + id).addEventListener('keydown', (e) => {
+      if (e.key === 'Enter'){ e.preventDefault(); unlockTool(); }
+    });
+  });
+  // Focus first field
+  setTimeout(() => $('#gateName').focus(), 100);
+
+  // View tab navigation
+  $$('.view-tab').forEach(tab => {
+    tab.addEventListener('click', () => switchView(tab.dataset.view));
+  });
+
+  initSetup();
+  renderAssessment();
+  renderKPIs();
+});
+</script>
+
+</body>
+</html>
